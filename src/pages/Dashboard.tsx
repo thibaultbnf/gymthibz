@@ -1,17 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import AICoachSection from "@/components/AICoachSection";
 import { useSession } from "@/contexts/SessionContext";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
-import { Dumbbell, CalendarDays, ListChecks, Play } from "lucide-react";
+import { Dumbbell, CalendarDays, ListChecks, Play, Target, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { Profile } from "@/types/workout";
+import { showError } from "@/utils/toast";
 
 const focusAreaLabels: { [key: string]: string } = {
   "back": "Dos",
@@ -24,10 +27,45 @@ const focusAreaLabels: { [key: string]: string } = {
   "other": "Autre",
 };
 
+const goalLabels: { [key: string]: string } = {
+  "gain_muscle": "Gain de muscle",
+  "weight_loss": "Perte de poids",
+  "strength": "Force",
+  "endurance": "Endurance",
+  "general_fitness": "Forme physique générale",
+  "other": "Autre",
+};
+
 const Dashboard = () => {
   const { user } = useSession();
   const { workouts } = useWorkouts();
   const { schedule, loading: scheduleLoading } = useWorkoutSchedule();
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) {
+        setProfileLoading(false);
+        return;
+      }
+      setProfileLoading(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("goal, training_days_per_week")
+        .eq("id", user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        showError(`Erreur lors du chargement du profil: ${error.message}`);
+      } else if (data) {
+        setUserProfile(data as Profile);
+      }
+      setProfileLoading(false);
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   // Calculate some basic stats
   const totalWorkouts = workouts.length;
@@ -94,6 +132,34 @@ const Dashboard = () => {
                 <Button asChild variant="outline" className="w-full">
                   <Link to="/workout-schedule">
                     <CalendarDays className="h-4 w-4 mr-2" /> Définir mon programme
+                  </Link>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-medium">Mon Objectif Principal</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {profileLoading ? (
+              <p className="text-muted-foreground">Chargement de l'objectif...</p>
+            ) : userProfile?.goal ? (
+              <>
+                <div className="text-2xl font-bold">{goalLabels[userProfile.goal] || userProfile.goal}</div>
+                <p className="text-xs text-muted-foreground">
+                  Jours d'entraînement ciblés : {userProfile.training_days_per_week || 'Non défini'} par semaine
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg text-muted-foreground mb-4">Aucun objectif défini.</p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/setup-goals-schedule">
+                    <Target className="h-4 w-4 mr-2" /> Définir mes objectifs
                   </Link>
                 </Button>
               </>

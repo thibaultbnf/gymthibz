@@ -92,3 +92,16 @@ export interface ExerciseDefinition {
   type: string; // 'machine', 'free_weight', 'bodyweight', 'cardio', etc.
   created_at: string;
 }
+
+export interface UserGoal {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string | null;
+  goal_type: 'weight_loss' | 'muscle_gain' | 'strength' | 'endurance' | 'other';
+  target_value: number | null; // e.g., target weight in kg, target 1RM
+  target_unit?: string | null; // e.g., 'kg', 'cm', 'reps'
+  target_date?: string | null; // ISO date string
+  created_at: string;
+  updated_at: string;
+}

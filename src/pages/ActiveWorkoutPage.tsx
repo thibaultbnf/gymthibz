@@ -42,6 +42,7 @@ import { useWorkoutTemplates } from "@/hooks/use-workout-templates";
 import { useExercises } from "@/hooks/use-exercises";
 import { getExerciseHistory, checkLastWorkoutSuccess, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import new helper functions
 import { Separator } from "@/components/ui/separator";
+import ExerciseHistoryDisplay from "@/components/ExerciseHistoryDisplay"; // Import the new component
 
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
@@ -456,6 +457,10 @@ const ActiveWorkoutPage: React.FC = () => {
                         </p>
                       )}
                     </div>
+                  )}
+
+                  {currentExerciseName && allWorkouts.length > 0 && (
+                    <ExerciseHistoryDisplay exerciseName={currentExerciseName} allWorkouts={allWorkouts} />
                   )}
 
                   <div className="space-y-4 mt-6">

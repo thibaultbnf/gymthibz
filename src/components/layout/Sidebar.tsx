@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Home, Dumbbell, LayoutTemplate, UserCircle, TrendingUp, CalendarCheck, Ruler, UtensilsCrossed, Target, List } from "lucide-react"; // Added List icon
+import { Home, Dumbbell, LayoutTemplate, UserCircle, TrendingUp, CalendarCheck, Ruler, UtensilsCrossed, Target, List, Goal } from "lucide-react"; // Added Goal icon
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,10 +37,11 @@ const Sidebar: React.FC<{ currentPath: string }> = ({ currentPath }) => {
     { to: "/workout-templates", icon: LayoutTemplate, label: "Modèles d'entraînements" },
     { to: "/workout-schedule", icon: CalendarCheck, label: "Programme Hebdomadaire" },
     { to: "/setup-goals-schedule", icon: Target, label: "Objectifs & Programme" },
+    { to: "/goals", icon: Goal, label: "Mes Objectifs" }, // New link for GoalsPage
     { to: "/progress", icon: TrendingUp, label: "Progression" },
     { to: "/measurements", icon: Ruler, label: "Mensurations" },
     { to: "/food-log", icon: UtensilsCrossed, label: "Journal Alimentaire" },
-    { to: "/exercises", icon: List, label: "Gestion des Exercices" }, // New link for ExercisesPage
+    { to: "/exercises", icon: List, label: "Gestion des Exercices" },
     { to: "/profile", icon: UserCircle, label: "Mon Profil" },
   ];
 
