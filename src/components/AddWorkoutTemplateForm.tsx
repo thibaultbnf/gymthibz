@@ -74,16 +74,16 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData // Removed the outer parentheses
+    defaultValues: initialData
       ? {
           name: initialData.name,
           description: initialData.description ?? "",
           focus_area: initialData.focus_area ?? undefined,
           exercises: initialData.exercises.map(ex => ({
             id: ex.id,
-            exercise_id: ex.exercise_id ?? "",
+            exercise_id: ex.exercise_id,
             name: ex.name,
-            type: ex.type ?? "",
+            type: ex.type,
             targetSets: ex.targetSets.map(set => ({
               targetReps: set.targetReps,
               targetWeight: set.targetWeight,
@@ -104,8 +104,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
-        }
-  );
+        },
+  });
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
@@ -211,7 +211,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           <CardTitle>Erreur de chargement des exercices</CardTitle>
         </CardHeader>
         <CardContent className="text-destructive">
-          Impossible de charger la liste des exercices : {exercisesError.message}
+          Impossible de charger la liste des exercices : {exercisesError}
         </CardContent>
       </Card>
     );
