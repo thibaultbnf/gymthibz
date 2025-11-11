@@ -115,7 +115,7 @@ export const getExerciseHistory = (
 
 /**
  * Generates smart suggestions for reps and weight for a single set,
- * based on historical performance and template targets.
+ * based on historical performance and template targets, implementing progressive overload.
  * @param history All historical sets for the specific exercise, sorted by date descending.
  * @param templateTarget The target reps/weight from the workout template for this set.
  * @returns Suggested reps and weight, including weighted_kg.
@@ -125,66 +125,112 @@ export const getSmartSetSuggestion = (
   templateTarget: TemplateExerciseSet
 ): ExerciseSet => {
   const { targetReps, targetWeight, targetWeighted_kg } = templateTarget;
+  const defaultSuggestion: ExerciseSet = { reps: targetReps, weight: targetWeight, weighted_kg: targetWeighted_kg };
 
-  // Default to template target if no history or if template target is 0
-  if (history.length === 0 || (targetReps === 0 && targetWeight === 0 && (targetWeighted_kg || 0) === 0)) {
-    return { reps: targetReps, weight: targetWeight, weighted_kg: targetWeighted_kg };
+  if (history.length === 0) {
+    return defaultSuggestion;
   }
 
-  // Find the most recent set that achieved or exceeded the target reps with a positive effective weight
-  const lastSuccessfulSet = history.find(
-    (h) => h.reps >= targetReps && (h.weight + (h.weighted_kg || 0)) > 0
-  );
+  // Find the most recent workout that included this exercise
+  const mostRecentWorkoutForExercise = history.find(h => h.reps > 0 || h.weight > 0 || (h.weighted_kg || 0) > 0);
 
-  if (lastSuccessfulSet) {
-    // Suggest a slight increase in effective weight (e.g., 2.5kg)
-    const lastEffectiveWeight = lastSuccessfulSet.weight + (lastSuccessfulSet.weighted_kg || 0);
-    const suggestedEffectiveWeight = lastEffectiveWeight + 2.5;
+  if (!mostRecentWorkoutForExercise) {
+    return defaultSuggestion;
+  }
 
-    // Try to keep the weighted_kg if it was used, otherwise apply increase to main weight
-    let suggestedWeight = lastSuccessfulSet.weight;
-    let suggestedWeighted_kg = lastSuccessfulSet.weighted_kg || 0;
-
-    if (suggestedWeighted_kg > 0) {
-      // If weighted, try to increase weighted_kg
-      suggestedWeighted_kg = suggestedEffectiveWeight - suggestedWeight;
-      if (suggestedWeighted_kg < 0) { // If suggested effective weight is less than base weight, adjust base weight
-        suggestedWeight = suggestedEffectiveWeight;
-        suggestedWeighted_kg = 0;
-      }
-    } else {
-      // If not weighted, increase main weight
-      suggestedWeight = suggestedEffectiveWeight;
+  // Analyze performance from the most recent workout for this exercise
+  // We need to group sets by workout date to analyze a "session"
+  const workoutsByDate = new Map<string, { reps: number; weight: number; weighted_kg: number | null }[]>();
+  history.forEach(h => {
+    if (!workoutsByDate.has(h.date)) {
+      workoutsByDate.set(h.date, []);
     }
+    workoutsByDate.get(h.date)?.push(h);
+  });
 
-    return { reps: targetReps, weight: suggestedWeight, weighted_kg: suggestedWeighted_kg };
+  const sortedWorkoutDates = Array.from(workoutsByDate.keys()).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const lastWorkoutDate = sortedWorkoutDates[0];
+  const lastWorkoutSets = workoutsByDate.get(lastWorkoutDate) || [];
+
+  // Determine if the user successfully completed all target sets in the last workout
+  let allSetsCompletedSuccessfully = true;
+  let partialFailureCount = 0; // 1-2 reps missing
+  let totalFailureCount = 0; // more than 2 reps missing or multiple sets failed
+
+  // For simplicity, we'll check if *any* set in the last workout met or exceeded the target reps
+  // and if the weight was close to the target. This is a heuristic.
+  // A more robust system would compare each set to its corresponding target.
+  // For now, let's assume the template target is for *all* sets.
+  const lastWorkoutEffectiveWeight = lastWorkoutSets.length > 0
+    ? lastWorkoutSets[0].weight + (lastWorkoutSets[0].weighted_kg || 0)
+    : 0;
+
+  const targetEffectiveWeight = targetWeight + (targetWeighted_kg || 0);
+
+  if (lastWorkoutSets.length > 0) {
+    for (const set of lastWorkoutSets) {
+      if (set.reps < targetReps) {
+        const repsDifference = targetReps - set.reps;
+        if (repsDifference <= 2) {
+          partialFailureCount++;
+        } else {
+          totalFailureCount++;
+        }
+        allSetsCompletedSuccessfully = false;
+      }
+      // Also consider if the weight was significantly lower than target
+      if ((set.weight + (set.weighted_kg || 0)) < (targetEffectiveWeight * 0.9)) { // If actual weight was less than 90% of target
+        totalFailureCount++;
+        allSetsCompletedSuccessfully = false;
+      }
+    }
   } else {
-    // If no successful set found for target reps, suggest the template target weight
-    // or the highest effective weight ever lifted for any reps if template target is 0
-    const highestEffectiveWeightEver = history.reduce((max, h) => Math.max(max, h.weight + (h.weighted_kg || 0)), 0);
-    const suggestedEffectiveWeight = (targetWeight + (targetWeighted_kg || 0)) > 0
-      ? (targetWeight + (targetWeighted_kg || 0))
-      : highestEffectiveWeightEver > 0
-        ? highestEffectiveWeightEver
-        : 0;
-
-    // Distribute suggested effective weight back to weight and weighted_kg, prioritizing weighted_kg if template had it
-    let finalSuggestedWeight = targetWeight;
-    let finalSuggestedWeighted_kg = targetWeighted_kg;
-
-    if (finalSuggestedWeighted_kg && finalSuggestedWeighted_kg > 0) {
-      // If template had weighted_kg, try to maintain it and adjust main weight
-      finalSuggestedWeight = suggestedEffectiveWeight - finalSuggestedWeighted_kg;
-      if (finalSuggestedWeight < 0) { // If main weight becomes negative, put all on weighted_kg
-        finalSuggestedWeighted_kg = suggestedEffectiveWeight;
-        finalSuggestedWeight = 0;
-      }
-    } else {
-      // Otherwise, put all on main weight
-      finalSuggestedWeight = suggestedEffectiveWeight;
-      finalSuggestedWeighted_kg = 0;
-    }
-
-    return { reps: targetReps, weight: finalSuggestedWeight, weighted_kg: finalSuggestedWeighted_kg };
+    allSetsCompletedSuccessfully = false; // No sets recorded for this exercise in the last workout
   }
+
+  let suggestedWeight = targetWeight;
+  let suggestedWeighted_kg = targetWeighted_kg;
+  const increment = 2.5; // Fixed increment as per example
+
+  if (allSetsCompletedSuccessfully) {
+    // If all sets completed successfully, apply progressive overload (+2.5kg)
+    let newEffectiveWeight = targetEffectiveWeight + increment;
+    if (targetWeighted_kg !== null && targetWeighted_kg > 0) {
+      // If it was a weighted bodyweight exercise, prioritize increasing weighted_kg
+      suggestedWeighted_kg = (targetWeighted_kg || 0) + increment;
+      suggestedWeight = targetWeight;
+    } else {
+      // Otherwise, increase the main weight
+      suggestedWeight = targetWeight + increment;
+      suggestedWeighted_kg = null;
+    }
+  } else if (partialFailureCount > 0 && totalFailureCount === 0) {
+    // If partially failed (1-2 reps missing on some sets), keep same weight
+    suggestedWeight = targetWeight;
+    suggestedWeighted_kg = targetWeighted_kg;
+  } else if (totalFailureCount > 0) {
+    // If failed multiple times or significantly, reduce weight (-2.5kg)
+    let newEffectiveWeight = targetEffectiveWeight - increment;
+    if (newEffectiveWeight < 0) newEffectiveWeight = 0; // Ensure weight doesn't go negative
+
+    if (targetWeighted_kg !== null && targetWeighted_kg > 0) {
+      suggestedWeighted_kg = Math.max(0, (targetWeighted_kg || 0) - increment);
+      suggestedWeight = targetWeight;
+    } else {
+      suggestedWeight = Math.max(0, targetWeight - increment);
+      suggestedWeighted_kg = null;
+    }
+  }
+
+  // Round to nearest 0.5kg for practical weights
+  suggestedWeight = Math.round(suggestedWeight * 2) / 2;
+  if (suggestedWeighted_kg !== null) {
+    suggestedWeighted_kg = Math.round(suggestedWeighted_kg * 2) / 2;
+  }
+
+  return {
+    reps: targetReps, // Reps usually stay the same for progressive overload
+    weight: suggestedWeight,
+    weighted_kg: suggestedWeighted_kg,
+  };
 };

@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import AddWorkoutForm from "@/components/AddWorkoutForm";
+import WorkoutSessionForm from "@/components/WorkoutSessionForm"; // Renamed import
 import WorkoutCard from "@/components/WorkoutCard";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { useWorkoutTemplates } from "@/hooks/use-workout-templates";
 import { Workout } from "@/types/workout";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { useSearchParams } from "react-router-dom"; // Import useSearchParams
+import { useSearchParams } from "react-router-dom";
 
 const WorkoutsPage = () => {
   const { workouts, addWorkout, deleteWorkout } = useWorkouts();
   const { templates: workoutTemplates } = useWorkoutTemplates();
-  const [searchParams, setSearchParams] = useSearchParams(); // Hook to read/set URL params
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showAddForm, setShowAddForm] = useState(false);
 
   const initialFocusArea = searchParams.get("focusArea");
@@ -26,12 +26,12 @@ const WorkoutsPage = () => {
 
   const handleAddWorkoutClick = () => {
     setShowAddForm(true);
-    setSearchParams({}); // Clear focusArea from URL when manually opening form
+    setSearchParams({});
   };
 
   const handleFormSubmitted = () => {
     setShowAddForm(false);
-    setSearchParams({}); // Clear any focusArea from URL
+    setSearchParams({});
   };
 
   const sortedWorkouts = [...workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -47,10 +47,10 @@ const WorkoutsPage = () => {
       )}
 
       {showAddForm && (
-        <AddWorkoutForm
+        <WorkoutSessionForm // Renamed component
           onAddWorkout={addWorkout}
           workoutTemplates={workoutTemplates}
-          initialFocusArea={initialFocusArea || undefined} // Pass initial focus area
+          initialFocusArea={initialFocusArea || undefined}
           onFormSubmitted={handleFormSubmitted}
         />
       )}
