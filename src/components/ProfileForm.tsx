@@ -29,20 +29,10 @@ const profileFormSchema = z.object({
   last_name: z.string().min(1, "Le nom est requis").optional().or(z.literal("")),
   height_cm: z.coerce.number().min(1, "La taille doit être supérieure à 0").optional().or(z.literal(0)),
   weight_kg: z.coerce.number().min(0.1, "Le poids doit être supérieur à 0").optional().or(z.literal(0)),
-  goal: z.string().optional().or(z.literal("")), // Changed to string for select
-  training_days_per_week: z.coerce.number().min(0, "Le nombre de jours doit être positif").max(7, "Maximum 7 jours").optional().or(z.literal(0)), // New field
+  // Removed goal and training_days_per_week
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-const goalOptions = [
-  { value: "gain_muscle", label: "Gain de muscle" },
-  { value: "weight_loss", label: "Perte de poids" },
-  { value: "strength", label: "Force" },
-  { value: "endurance", label: "Endurance" },
-  { value: "general_fitness", label: "Forme physique générale" },
-  { value: "other", label: "Autre" },
-];
 
 const ProfileForm: React.FC = () => {
   const { user } = useSession();
@@ -55,8 +45,6 @@ const ProfileForm: React.FC = () => {
       last_name: "",
       height_cm: 0,
       weight_kg: 0,
-      goal: "",
-      training_days_per_week: 0,
     },
   });
 
@@ -67,7 +55,7 @@ const ProfileForm: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, height_cm, weight_kg, goal, training_days_per_week")
+        .select("first_name, last_name, height_cm, weight_kg") // Removed goal, training_days_per_week
         .eq("id", user.id)
         .single();
 
@@ -79,8 +67,6 @@ const ProfileForm: React.FC = () => {
           last_name: data.last_name || "",
           height_cm: data.height_cm || 0,
           weight_kg: data.weight_kg || 0,
-          goal: data.goal || "",
-          training_days_per_week: data.training_days_per_week || 0,
         });
       }
       setLoading(false);
@@ -104,8 +90,6 @@ const ProfileForm: React.FC = () => {
         last_name: values.last_name || null,
         height_cm: values.height_cm && values.height_cm > 0 ? values.height_cm : null,
         weight_kg: values.weight_kg && values.weight_kg > 0 ? values.weight_kg : null,
-        goal: values.goal || null,
-        training_days_per_week: values.training_days_per_week && values.training_days_per_week > 0 ? values.training_days_per_week : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
 
@@ -194,43 +178,6 @@ const ProfileForm: React.FC = () => {
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="goal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Objectif</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner votre objectif" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {goalOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="training_days_per_week"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Jours d'entraînement par semaine</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Ex: 3" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>

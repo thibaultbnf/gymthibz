@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Home, Dumbbell, LayoutTemplate, UserCircle, TrendingUp, CalendarCheck, Ruler, UtensilsCrossed } from "lucide-react"; // Added UtensilsCrossed icon
+import { Home, Dumbbell, LayoutTemplate, UserCircle, TrendingUp, CalendarCheck, Ruler, UtensilsCrossed, Target } from "lucide-react"; // Added Target icon
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,10 +35,11 @@ const Sidebar: React.FC<{ currentPath: string }> = ({ currentPath }) => {
     { to: "/", icon: Home, label: "Tableau de bord" },
     { to: "/workouts", icon: Dumbbell, label: "Entraînements" },
     { to: "/workout-templates", icon: LayoutTemplate, label: "Modèles d'entraînements" },
-    { to: "/workout-schedule", icon: CalendarCheck, label: "Mon Programme" },
+    { to: "/workout-schedule", icon: CalendarCheck, label: "Programme Hebdomadaire" }, // Renamed
+    { to: "/setup-goals-schedule", icon: Target, label: "Objectifs & Programme" }, // New link
     { to: "/progress", icon: TrendingUp, label: "Progression" },
     { to: "/measurements", icon: Ruler, label: "Mensurations" },
-    { to: "/food-log", icon: UtensilsCrossed, label: "Journal Alimentaire" }, // New link for food log
+    { to: "/food-log", icon: UtensilsCrossed, label: "Journal Alimentaire" },
     { to: "/profile", icon: UserCircle, label: "Mon Profil" },
   ];
 
