@@ -356,7 +356,9 @@ const ActiveWorkoutPage: React.FC = () => {
                           ))
                         ) : (
                           <SelectItem value="no-templates" disabled>
-                            Aucun modèle disponible
+                            {initialFocusArea
+                              ? `Aucun modèle trouvé pour la zone de focus "${initialFocusArea.split(',').map(area => focusAreaLabels[area] || area).join(', ')}".`
+                              : "Aucun modèle disponible."}
                           </SelectItem>
                         )}
                       </SelectContent>
