@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, PlusCircle, Trash2, Lightbulb, Loader2, Calculator } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Lightbulb, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,12 +23,11 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Workout, WorkoutTemplate, ExerciseSet } from "@/types/workout";
+import { Workout, WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { useExercises } from "@/hooks/use-exercises";
 import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
-import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal"; // Import the enhanced modal
 
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
@@ -98,7 +97,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     },
   });
 
-  const { fields: exerciseFields, append: appendExercise, remove: removeExercise, update: updateExercise } = useFieldArray({
+  const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
     name: "exercises",
   });
@@ -140,8 +139,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         });
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else if (initialFocusAreasArray.length === 0 && exerciseFields.length === 1 && form.getValues("exercises")[0].exercise_id === "") {
-      // Only reset if it's the initial empty state and no template is selected
+    } else if (initialFocusAreasArray.length === 0) {
       form.setValue("exercises", [
         {
           id: crypto.randomUUID(),
@@ -152,7 +150,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         },
       ]);
     }
-  }, [selectedTemplateId, workoutTemplates, form, initialFocusAreasArray, allWorkouts, exerciseFields.length]);
+  }, [selectedTemplateId, workoutTemplates, form, initialFocusAreasArray, allWorkouts]);
 
   const handleExerciseSelect = (exerciseIndex: number, selectedExerciseId: string) => {
     const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
@@ -161,27 +159,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
       form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // ADDED: Set type
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
-    } else {
-      // If selectedExercise is not found, reset related fields to default empty strings
-      form.setValue(`exercises.${exerciseIndex}.exercise_id`, "");
-      form.setValue(`exercises.${exerciseIndex}.name`, "");
-      form.setValue(`exercises.${exerciseIndex}.type`, "");
     }
-  };
-
-  const handleApplySetsFrom1RM = (exerciseIndex: number, sets: ExerciseSet[]) => {
-    const currentExercise = form.getValues(`exercises.${exerciseIndex}`);
-    const selectedExerciseDefinition = exercises.find(ex => ex.id === currentExercise.exercise_id);
-    const isBodyweightExercise = selectedExerciseDefinition?.type === 'bodyweight';
-
-    updateExercise(exerciseIndex, {
-      ...currentExercise,
-      sets: sets.map(set => ({
-        ...set,
-        weighted_kg: isBodyweightExercise ? (set.weighted_kg || 0) : null,
-      })),
-    });
-    showSuccess("Séries générées et appliquées avec succès !");
   };
 
   const onSubmit = (values: WorkoutFormValues) => {
@@ -268,14 +246,12 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          <span> {/* Wrap content in a span */}
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: fr })
-                            ) : (
-                              <span>Choisir une date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </span>
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: fr })
+                          ) : (
+                            <span>Choisir une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -323,7 +299,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
             />
 
             {exerciseFields.map((exercise, exerciseIndex) => {
-              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`) || ""; // Ensure it's always a string
+              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
               return (
                 <Card key={exercise.id} className="p-4">
                   <div className="flex justify-between items-center mb-4">
@@ -364,16 +340,6 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                       </FormItem>
                     )}
                   />
-
-                  {form.watch(`exercises.${exerciseIndex}.exercise_id`) && (
-                    <div className="mb-4">
-                      <OneRMCalculatorModal
-                        onApplySets={(sets) => handleApplySetsFrom1RM(exerciseIndex, sets)}
-                        triggerButtonText="Générer les séries avec le calculateur 1RM"
-                        initialExerciseId={form.watch(`exercises.${exerciseIndex}.exercise_id`)}
-                      />
-                    </div>
-                  )}
 
                   <div className="space-y-4">
                     <FormLabel>Séries</FormLabel>

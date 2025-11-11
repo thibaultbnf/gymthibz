@@ -147,14 +147,12 @@ const AddFoodEntryForm: React.FC<AddFoodEntryFormProps> = ({
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          <span> {/* Wrap content in a span */}
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: fr })
-                            ) : (
-                              <span>Choisir une date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </span>
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: fr })
+                          ) : (
+                            <span>Choisir une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>

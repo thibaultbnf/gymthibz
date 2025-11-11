@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 import { Badge } from "@/components/ui/badge"; // Import Badge
 import { ChevronDown, X, Save } from "lucide-react"; // Import ChevronDown and X icons
 import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
-import { Loader2 } from "@/components/ui/loader"; // Assuming you have a Loader2 component
+import { Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { cn } from "@/lib/utils"; // Import cn for styling
 
@@ -102,7 +102,7 @@ const WorkoutSchedulePage: React.FC = () => {
       <div className="container mx-auto py-8 text-center text-destructive">
         <h1 className="text-4xl font-bold mb-8">Erreur de chargement</h1>
         <p className="text-lg">
-          Impossible de charger les données : {scheduleError}
+          Impossible de charger les données : {scheduleError} {/* FIXED: Display error directly */}
         </p>
       </div>
     );
@@ -127,28 +127,25 @@ const WorkoutSchedulePage: React.FC = () => {
                     role="combobox"
                     className="w-2/3 justify-between h-auto min-h-[38px]"
                   >
-                    {/* Wrap the content in a single span */}
-                    <span className="flex items-center justify-between w-full">
-                      <div className="flex flex-wrap gap-1">
-                        {localSchedule[day.value] && localSchedule[day.value]!.length > 0 ? (
-                          localSchedule[day.value]!.map((area) => (
-                            <Badge key={area} variant="secondary" className="flex items-center">
-                              {focusAreaLabels[area] || area}
-                              <X
-                                className="ml-1 h-3 w-3 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent popover from closing
-                                  handleToggleFocusArea(day.value, area);
-                                }}
-                              />
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-muted-foreground">Jour de repos ou Sélectionner...</span>
-                        )}
-                      </div>
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {localSchedule[day.value] && localSchedule[day.value]!.length > 0 ? (
+                        localSchedule[day.value]!.map((area) => (
+                          <Badge key={area} variant="secondary" className="flex items-center">
+                            {focusAreaLabels[area] || area}
+                            <X
+                              className="ml-1 h-3 w-3 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent popover from closing
+                                handleToggleFocusArea(day.value, area);
+                              }}
+                            />
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground">Jour de repos ou Sélectionner...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[200px] p-0">

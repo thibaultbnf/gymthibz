@@ -15,40 +15,37 @@ import WorkoutSchedulePage from "./pages/WorkoutSchedulePage";
 import BodyMeasurementsPage from "./pages/BodyMeasurementsPage";
 import FoodLogPage from "./pages/FoodLogPage";
 import SetupGoalsAndSchedulePage from "./pages/SetupGoalsAndSchedulePage";
-import ExercisesPage from "./pages/ExercisesPage";
+import ExercisesPage from "./pages/ExercisesPage"; // Import the new page
 import { SessionContextProvider } from "./contexts/SessionContext";
-import React from "react"; // Import React for Fragment
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <React.Fragment> {/* Wrap children in a Fragment */}
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SessionContextProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={<MainLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="workouts" element={<WorkoutsPage />} />
-                <Route path="workout-templates" element={<WorkoutTemplatesPage />} />
-                <Route path="workout-schedule" element={<WorkoutSchedulePage />} />
-                <Route path="progress" element={<ProgressPage />} />
-                <Route path="measurements" element={<BodyMeasurementsPage />} />
-                <Route path="food-log" element={<FoodLogPage />} />
-                <Route path="profile" element={<ProfilePage />} />
-                <Route path="setup-goals-schedule" element={<SetupGoalsAndSchedulePage />} />
-                <Route path="exercises" element={<ExercisesPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </SessionContextProvider>
-        </BrowserRouter>
-      </React.Fragment>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <SessionContextProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="workouts" element={<WorkoutsPage />} />
+              <Route path="workout-templates" element={<WorkoutTemplatesPage />} />
+              <Route path="workout-schedule" element={<WorkoutSchedulePage />} />
+              <Route path="progress" element={<ProgressPage />} />
+              <Route path="measurements" element={<BodyMeasurementsPage />} />
+              <Route path="food-log" element={<FoodLogPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="setup-goals-schedule" element={<SetupGoalsAndSchedulePage />} />
+              <Route path="exercises" element={<ExercisesPage />} /> {/* Add the new route */}
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </SessionContextProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

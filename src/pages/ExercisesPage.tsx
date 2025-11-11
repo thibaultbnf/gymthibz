@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Loader2, Edit, Trash2, Calculator } from "lucide-react";
+import { PlusCircle, Loader2, Edit, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useExercises } from "@/hooks/use-exercises";
+import { ExerciseDefinition } from "@/types/workout";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,32 +31,30 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useExercises } from "@/hooks/use-exercises";
-import { ExerciseDefinition } from "@/types/workout";
-import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal"; // Import the new modal
 
-const exerciseTypeOptions = [
-  { value: "free_weight", label: "Poids libre" },
-  { value: "bodyweight", label: "Poids du corps" },
-  { value: "machine", label: "Machine" },
-  { value: "cardio", label: "Cardio" },
-  { value: "other", label: "Autre" },
-];
-
-const exerciseFormSchema = z.object({
+const exerciseDefinitionSchema = z.object({
+  id: z.string().uuid().optional(),
   name: z.string().min(1, "Le nom de l'exercice est requis"),
   type: z.string().min(1, "Le type d'exercice est requis"),
 });
 
-type ExerciseFormValues = z.infer<typeof exerciseFormSchema>;
+type ExerciseDefinitionFormValues = z.infer<typeof exerciseDefinitionSchema>;
+
+const exerciseTypeOptions = [
+  { value: "free_weight", label: "Poids libres" },
+  { value: "machine", label: "Machine" },
+  { value: "bodyweight", label: "Poids du corps" },
+  { value: "cardio", label: "Cardio" },
+  { value: "other", label: "Autre" },
+];
 
 const ExercisesPage: React.FC = () => {
   const { exercises, addExerciseDefinition, updateExerciseDefinition, deleteExerciseDefinition, loading, error } = useExercises();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseDefinition | null>(null);
 
-  const form = useForm<ExerciseFormValues>({
-    resolver: zodResolver(exerciseFormSchema),
+  const form = useForm<ExerciseDefinitionFormValues>({
+    resolver: zodResolver(exerciseDefinitionSchema),
     defaultValues: {
       name: "",
       type: "",
@@ -63,48 +63,34 @@ const ExercisesPage: React.FC = () => {
 
   React.useEffect(() => {
     if (editingExercise) {
-      form.reset({
-        name: editingExercise.name,
-        type: editingExercise.type,
-      });
-      setShowAddForm(true);
+      form.reset(editingExercise);
     } else {
-      form.reset({
-        name: "",
-        type: "",
-      });
+      form.reset({ name: "", type: "" });
     }
   }, [editingExercise, form]);
 
-  const onSubmit = async (values: ExerciseFormValues) => {
+  const onSubmit = async (values: ExerciseDefinitionFormValues) => {
     if (editingExercise) {
       // When updating, ensure 'created_at' is preserved from the existing object
-      await updateExerciseDefinition({
-        id: editingExercise.id,
-        name: values.name,
-        type: values.type,
-        created_at: editingExercise.created_at,
-      });
+      await updateExerciseDefinition({ ...values, id: editingExercise.id!, created_at: editingExercise.created_at });
     } else {
-      const newExerciseData: Omit<ExerciseDefinition, "id" | "created_at"> = { // Explicitly type newExerciseData
-        name: values.name,
-        type: values.type,
-      };
-      await addExerciseDefinition(newExerciseData);
+      // When adding, 'created_at' will be set by Supabase, 'id' is optional for the hook
+      await addExerciseDefinition(values as Omit<ExerciseDefinition, "id" | "created_at">);
     }
+    form.reset({ name: "", type: "" });
     setShowAddForm(false);
     setEditingExercise(null);
-    form.reset();
   };
 
   const handleEdit = (exercise: ExerciseDefinition) => {
     setEditingExercise(exercise);
+    setShowAddForm(true);
   };
 
   const handleCancel = () => {
     setShowAddForm(false);
     setEditingExercise(null);
-    form.reset();
+    form.reset({ name: "", type: "" });
   };
 
   if (loading) {
@@ -120,7 +106,7 @@ const ExercisesPage: React.FC = () => {
     return (
       <div className="container mx-auto py-8 text-center text-destructive">
         <h1 className="text-4xl font-bold mb-8">Erreur de chargement</h1>
-        <p className="text-lg">Impossible de charger les exercices : {error}</p>
+        <p className="text-lg">Impossible de charger les exercices : {error}</p> {/* FIXED: Display error directly */}
       </div>
     );
   }
@@ -129,14 +115,11 @@ const ExercisesPage: React.FC = () => {
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-8">Gestion des Exercices</h1>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        {!showAddForm && (
-          <Button onClick={() => setShowAddForm(true)} className="flex-1">
-            <PlusCircle className="h-4 w-4 mr-2" /> Ajouter un nouvel exercice
-          </Button>
-        )}
-        <OneRMCalculatorModal /> {/* Integrate the 1RM calculator modal here */}
-      </div>
+      {!showAddForm && (
+        <Button onClick={() => setShowAddForm(true)} className="mb-8">
+          <PlusCircle className="h-4 w-4 mr-2" /> Ajouter un nouvel exercice
+        </Button>
+      )}
 
       {showAddForm && (
         <Card className="mb-8">

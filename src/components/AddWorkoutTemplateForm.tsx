@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react"; // Import useState
+import React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Trash2, Loader2, Calculator } from "lucide-react";
+import { PlusCircle, Trash2, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WorkoutTemplate, ExerciseSet, TemplateExerciseSet } from "@/types/workout";
+import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useExercises } from "@/hooks/use-exercises";
-import { useWorkouts } from "@/hooks/use-workouts";
-import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
-import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal";
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
@@ -36,7 +33,7 @@ const templateExerciseSchema = z.object({
   id: z.string().uuid().optional(),
   exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"),
   name: z.string().min(1, "Nom de l'exercice requis"),
-  type: z.string().min(1, "Type d'exercice requis"),
+  type: z.string().min(1, "Type d'exercice requis"), // ADDED: Type field
   targetSets: z.array(templateExerciseSetSchema).min(1, "Au moins une série cible est requise"),
 });
 
@@ -74,10 +71,6 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   onCancel,
 }) => {
   const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises();
-  const { workouts: allWorkouts } = useWorkouts();
-
-  // State to control opening the 1RM calculator for a specific exercise index
-  const [open1RMCalculatorForExerciseIndex, setOpen1RMCalculatorForExerciseIndex] = useState<number | null>(null);
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
@@ -90,7 +83,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             id: ex.id,
             exercise_id: ex.exercise_id,
             name: ex.name,
-            type: ex.type,
+            type: ex.type, // ADDED: Ensure type is set from initialData
             targetSets: ex.targetSets.map(set => ({
               targetReps: set.targetReps,
               targetWeight: set.targetWeight,
@@ -107,14 +100,14 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               id: crypto.randomUUID(),
               exercise_id: "",
               name: "",
-              type: "",
+              type: "", // ADDED: Initialize type
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
         },
-  });
+  }); // FIXED: Removed extra parenthesis here
 
-  const { fields: exerciseFields, append: appendExercise, remove: removeExercise, update: updateExercise } = useFieldArray({
+  const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
     name: "exercises",
   });
@@ -124,64 +117,23 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     if (selectedExercise) {
       form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
-      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type);
+      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // ADDED: Set type
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
 
-      const exerciseHistory = getExerciseHistory(allWorkouts, selectedExercise.name);
-
-      if (exerciseHistory.length === 0) {
-        // If no history, automatically open the 1RM calculator and provide guidance
-        setOpen1RMCalculatorForExerciseIndex(exerciseIndex);
-        showSuccess("Veuillez utiliser le calculateur 1RM pour définir les séries cibles de cet exercice.");
-        // Ensure default sets are present if none exist
-        if (form.getValues(`exercises.${exerciseIndex}.targetSets`).length === 0) {
-            form.setValue(`exercises.${exerciseIndex}.targetSets`, [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }]);
-        }
+      // Reset targetWeighted_kg if the new exercise type is not 'bodyweight'
+      if (selectedExercise.type !== 'bodyweight') {
+        form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
+          ...set,
+          targetWeighted_kg: 0, // Explicitly set to 0
+        })));
       } else {
-        // Existing logic for smart suggestions if history is available
-        const currentTargetSets = form.getValues(`exercises.${exerciseIndex}.targetSets`);
-        const updatedTargetSets = currentTargetSets.map((set: TemplateExerciseSet) => { // Explicitly type 'set' here
-          const suggestion = getSmartSetSuggestion(exerciseHistory, set);
-          return {
-            targetReps: suggestion.reps,
-            targetWeight: suggestion.weight,
-            targetWeighted_kg: selectedExercise.type === 'bodyweight' ? (suggestion.weighted_kg || 0) : null, // Explicitly set to null for non-bodyweight
-          };
-        });
-        form.setValue(`exercises.${exerciseIndex}.targetSets`, updatedTargetSets);
-
-        // If the exercise type is not 'bodyweight', ensure targetWeighted_kg is 0
-        if (selectedExercise.type !== 'bodyweight') { // <--- HERE
-          form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
-            ...set,
-            targetWeighted_kg: null, // Ensure it's null for non-bodyweight
-          })));
-        }
+        // If it is bodyweight, ensure it's not null if it was previously
+        form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
+          ...set,
+          targetWeighted_kg: set.targetWeighted_kg === null ? 0 : set.targetWeighted_kg,
+        })));
       }
-    } else {
-      // If selectedExercise is not found, reset related fields to default empty strings
-      form.setValue(`exercises.${exerciseIndex}.exercise_id`, "");
-      form.setValue(`exercises.${exerciseIndex}.name`, "");
-      form.setValue(`exercises.${exerciseIndex}.type`, "");
     }
-  };
-
-  const handleApplySetsFrom1RM = (exerciseIndex: number, sets: ExerciseSet[]) => {
-    const currentExercise = form.getValues(`exercises.${exerciseIndex}`);
-    const selectedExerciseDefinition = exercises.find(ex => ex.id === currentExercise.exercise_id);
-    const isBodyweightExercise = selectedExerciseDefinition?.type === 'bodyweight';
-
-    const newTargetSets: TemplateExerciseSet[] = sets.map(set => ({
-      targetReps: set.reps,
-      targetWeight: set.weight,
-      targetWeighted_kg: isBodyweightExercise ? (set.weighted_kg || 0) : null, // Explicitly set to null for non-bodyweight
-    }));
-    updateExercise(exerciseIndex, {
-      ...currentExercise,
-      targetSets: newTargetSets,
-    });
-    showSuccess("Séries générées et appliquées avec succès au modèle !");
-    setOpen1RMCalculatorForExerciseIndex(null); // Close the modal after applying
   };
 
   const getWeightLabel = (exerciseType: string, exerciseName: string) => {
@@ -203,11 +155,11 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       name: values.name,
       description: values.description,
       focus_area: values.focus_area || null,
-      exercises: values.exercises.map(ex => ({
+      exercises: values.exercises.map(ex => ({ // FIXED: Ensure all required fields are present
         id: ex.id || crypto.randomUUID(),
         exercise_id: ex.exercise_id,
         name: ex.name,
-        type: ex.type,
+        type: ex.type, // ADDED: Ensure type is explicitly set
         targetSets: ex.targetSets.map(set => ({
           targetReps: set.targetReps,
           targetWeight: set.targetWeight,
@@ -262,7 +214,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           <CardTitle>Erreur de chargement des exercices</CardTitle>
         </CardHeader>
         <CardContent className="text-destructive">
-          Impossible de charger la liste des exercices : {exercisesError}
+          Impossible de charger la liste des exercices : {exercisesError} {/* FIXED: Display error directly */}
         </CardContent>
       </Card>
     );
@@ -328,10 +280,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             />
 
             {exerciseFields.map((exercise, exerciseIndex) => {
-              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`) || ""; // Ensure it's always a string
-              const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`) || ""; // Ensure it's always a string
-              const currentExerciseId = form.watch(`exercises.${exerciseIndex}.exercise_id`);
-
+              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
+              const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`);
               return (
                 <Card key={exercise.id} className="p-4">
                   <div className="flex justify-between items-center mb-4">
@@ -372,22 +322,6 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                       </FormItem>
                     )}
                   />
-
-                  {currentExerciseId && ( // Only show 1RM calculator if an exercise is selected
-                    <div className="mb-4">
-                      <OneRMCalculatorModal
-                        onApplySets={(sets) => handleApplySetsFrom1RM(exerciseIndex, sets)}
-                        triggerButtonText="Générer les séries avec le calculateur 1RM"
-                        initialExerciseId={currentExerciseId}
-                        open={open1RMCalculatorForExerciseIndex === exerciseIndex} // Control open state
-                        onOpenChange={(isOpen) => {
-                          if (!isOpen) {
-                            setOpen1RMCalculatorForExerciseIndex(null); // Close the modal
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
 
                   <div className="space-y-4">
                     <FormLabel>Séries cibles</FormLabel>
@@ -430,9 +364,9 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                                   <Input type="number" step="0.5" placeholder="0" {...field} />
                                 </FormControl>
                                 <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                              </FormItem>
+                            )}
+                          />
                         )}
                         <Button
                           type="button"
@@ -479,7 +413,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                   id: crypto.randomUUID(),
                   exercise_id: "",
                   name: "",
-                  type: "",
+                  type: "", // ADDED: Initialize type
                   targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
                 })
               }
