@@ -145,7 +145,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           return {
             targetReps: suggestion.reps,
             targetWeight: suggestion.weight,
-            targetWeighted_kg: selectedExercise.type === 'bodyweight' ? (suggestion.weighted_kg || 0) : 0,
+            targetWeighted_kg: selectedExercise.type === 'bodyweight' ? (suggestion.weighted_kg || 0) : null, // Explicitly set to null for non-bodyweight
           };
         });
         form.setValue(`exercises.${exerciseIndex}.targetSets`, updatedTargetSets);
@@ -154,7 +154,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
         if (selectedExercise.type !== 'bodyweight') {
           form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
             ...set,
-            targetWeighted_kg: 0,
+            targetWeighted_kg: null, // Ensure it's null for non-bodyweight
           })));
         }
       }
@@ -163,10 +163,13 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
 
   const handleApplySetsFrom1RM = (exerciseIndex: number, sets: ExerciseSet[]) => {
     const currentExercise = form.getValues(`exercises.${exerciseIndex}`);
+    const selectedExerciseDefinition = exercises.find(ex => ex.id === currentExercise.exercise_id);
+    const isBodyweightExercise = selectedExerciseDefinition?.type === 'bodyweight';
+
     const newTargetSets: TemplateExerciseSet[] = sets.map(set => ({
       targetReps: set.reps,
       targetWeight: set.weight,
-      targetWeighted_kg: set.weighted_kg,
+      targetWeighted_kg: isBodyweightExercise ? (set.weighted_kg || 0) : null, // Explicitly set to null for non-bodyweight
     }));
     updateExercise(exerciseIndex, {
       ...currentExercise,
