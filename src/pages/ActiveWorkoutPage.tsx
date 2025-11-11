@@ -40,7 +40,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { useWorkoutTemplates } from "@/hooks/use-workout-templates";
 import { useExercises } from "@/hooks/use-exercises";
-import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
+import { getExerciseHistory, checkLastWorkoutSuccess, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import new helper functions
 import { Separator } from "@/components/ui/separator";
 
 const exerciseSetSchema = z.object({
@@ -137,13 +137,15 @@ const ActiveWorkoutPage: React.FC = () => {
       if (selectedTemplate) {
         const exercisesFromTemplate = selectedTemplate.exercises.map(templateEx => {
           const exerciseHistory = getExerciseHistory(allWorkouts, templateEx.name);
+          const lastWorkoutSuccessful = checkLastWorkoutSuccess(exerciseHistory, templateEx.targetSets); // Check overall success
+
           return {
             id: crypto.randomUUID(),
             exercise_id: templateEx.exercise_id,
             name: templateEx.name,
             type: templateEx.type,
             sets: templateEx.targetSets.map(targetSet => {
-              const suggestion = getSmartSetSuggestion(exerciseHistory, targetSet);
+              const suggestion = getSmartSetSuggestion(templateSet, templateEx.type, lastWorkoutSuccessful); // Pass overall success
               return {
                 reps: suggestion.reps,
                 weight: suggestion.weight,

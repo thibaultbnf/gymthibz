@@ -23,6 +23,8 @@ import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useExercises } from "@/hooks/use-exercises";
 import { templateExerciseSchema, default as TemplateExerciseInput } from "@/components/TemplateExerciseInput"; // Import the new component and its schema
+import { useWorkouts } from "@/hooks/use-workouts"; // Import useWorkouts
+import { getExerciseHistory, checkLastWorkoutSuccess, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import new helper functions
 
 const formSchema = z.object({
   name: z.string().min(1, "Nom du modèle requis"),
@@ -58,6 +60,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   onCancel,
 }) => {
   const { loading: exercisesLoading, error: exercisesError } = useExercises();
+  const { workouts: allWorkouts } = useWorkouts(); // Fetch all workouts for history
   const [profileLoading, setProfileLoading] = useState(false); // Keep this for future profile-related loading
 
   const form = useForm<WorkoutTemplateFormValues>({

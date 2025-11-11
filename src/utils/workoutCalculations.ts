@@ -1,4 +1,4 @@
-import { Workout, ExerciseSet, TemplateExerciseSet } from "@/types/workout";
+import { Workout, ExerciseSet, TemplateExerciseSet, TemplateExercise } from "@/types/workout";
 
 export interface WorkoutVolumeData {
   date: string;
@@ -114,34 +114,23 @@ export const getExerciseHistory = (
 };
 
 /**
- * Generates smart suggestions for reps and weight for a single set,
- * based on historical performance and template targets, implementing progressive overload.
- * @param history All historical sets for the specific exercise, sorted by date descending.
- * @param templateTarget The target reps/weight from the workout template for this set.
- * @returns Suggested reps and weight, including weighted_kg.
+ * Checks if all sets for a given exercise in its most recent workout were successfully completed
+ * compared to its template targets.
+ * @param exerciseHistory All historical sets for the specific exercise, sorted by date descending.
+ * @param templateTargetSets The target sets from the workout template for this exercise.
+ * @returns True if all sets in the last workout met or exceeded template targets, false otherwise.
  */
-export const getSmartSetSuggestion = (
-  history: { date: string; reps: number; weight: number; weighted_kg: number | null }[],
-  templateTarget: TemplateExerciseSet
-): ExerciseSet => {
-  const { targetReps, targetWeight, targetWeighted_kg } = templateTarget;
-  const defaultSuggestion: ExerciseSet = { reps: targetReps, weight: targetWeight, weighted_kg: targetWeighted_kg };
-
-  if (history.length === 0) {
-    return defaultSuggestion;
+export const checkLastWorkoutSuccess = (
+  exerciseHistory: { date: string; reps: number; weight: number; weighted_kg: number | null }[],
+  templateTargetSets: TemplateExerciseSet[]
+): boolean => {
+  if (exerciseHistory.length === 0 || templateTargetSets.length === 0) {
+    return false;
   }
 
-  // Find the most recent workout that included this exercise
-  const mostRecentWorkoutForExercise = history.find(h => h.reps > 0 || h.weight > 0 || (h.weighted_kg || 0) > 0);
-
-  if (!mostRecentWorkoutForExercise) {
-    return defaultSuggestion;
-  }
-
-  // Analyze performance from the most recent workout for this exercise
-  // We need to group sets by workout date to analyze a "session"
+  // Group history by workout date
   const workoutsByDate = new Map<string, { reps: number; weight: number; weighted_kg: number | null }[]>();
-  history.forEach(h => {
+  exerciseHistory.forEach(h => {
     if (!workoutsByDate.has(h.date)) {
       workoutsByDate.set(h.date, []);
     }
@@ -152,75 +141,57 @@ export const getSmartSetSuggestion = (
   const lastWorkoutDate = sortedWorkoutDates[0];
   const lastWorkoutSets = workoutsByDate.get(lastWorkoutDate) || [];
 
-  // Determine if the user successfully completed all target sets in the last workout
-  let allSetsCompletedSuccessfully = true;
-  let partialFailureCount = 0; // 1-2 reps missing
-  let totalFailureCount = 0; // more than 2 reps missing or multiple sets failed
-
-  // For simplicity, we'll check if *any* set in the last workout met or exceeded the target reps
-  // and if the weight was close to the target. This is a heuristic.
-  // A more robust system would compare each set to its corresponding target.
-  // For now, let's assume the template target is for *all* sets.
-  const lastWorkoutEffectiveWeight = lastWorkoutSets.length > 0
-    ? lastWorkoutSets[0].weight + (lastWorkoutSets[0].weighted_kg || 0)
-    : 0;
-
-  const targetEffectiveWeight = targetWeight + (targetWeighted_kg || 0);
-
-  if (lastWorkoutSets.length > 0) {
-    for (const set of lastWorkoutSets) {
-      if (set.reps < targetReps) {
-        const repsDifference = targetReps - set.reps;
-        if (repsDifference <= 2) {
-          partialFailureCount++;
-        } else {
-          totalFailureCount++;
-        }
-        allSetsCompletedSuccessfully = false;
-      }
-      // Also consider if the weight was significantly lower than target
-      if ((set.weight + (set.weighted_kg || 0)) < (targetEffectiveWeight * 0.9)) { // If actual weight was less than 90% of target
-        totalFailureCount++;
-        allSetsCompletedSuccessfully = false;
-      }
-    }
-  } else {
-    allSetsCompletedSuccessfully = false; // No sets recorded for this exercise in the last workout
+  // If the number of sets in the last workout doesn't match the template, it's not a clear success
+  if (lastWorkoutSets.length !== templateTargetSets.length) {
+    return false;
   }
+
+  // Check each set against its corresponding template target
+  for (let i = 0; i < templateTargetSets.length; i++) {
+    const actualSet = lastWorkoutSets[i];
+    const targetSet = templateTargetSets[i];
+
+    const actualEffectiveWeight = actualSet.weight + (actualSet.weighted_kg || 0);
+    const targetEffectiveWeight = targetSet.targetWeight + (targetSet.targetWeighted_kg || 0);
+
+    // Check if reps met or exceeded target, and if weight was at least the target
+    if (actualSet.reps < targetSet.targetReps || actualEffectiveWeight < targetEffectiveWeight) {
+      return false; // At least one set failed to meet targets
+    }
+  }
+
+  return true; // All sets met or exceeded targets
+};
+
+
+/**
+ * Generates smart suggestions for reps and weight for a single set,
+ * based on historical performance and template targets, implementing progressive overload.
+ * @param templateTarget The target reps/weight from the workout template for this set.
+ * @param exerciseType The type of exercise ('free_weight', 'machine', 'bodyweight', 'cardio', 'other').
+ * @param lastWorkoutSuccessful A boolean indicating if the entire exercise was successful in the last workout.
+ * @returns Suggested reps and weight, including weighted_kg.
+ */
+export const getSmartSetSuggestion = (
+  templateTarget: TemplateExerciseSet,
+  exerciseType: string,
+  lastWorkoutSuccessful: boolean
+): ExerciseSet => {
+  const { targetReps, targetWeight, targetWeighted_kg } = templateTarget;
+  const increment = 2.5; // Fixed increment for progressive overload
 
   let suggestedWeight = targetWeight;
   let suggestedWeighted_kg = targetWeighted_kg;
-  const increment = 2.5; // Fixed increment as per example
 
-  if (allSetsCompletedSuccessfully) {
+  if (lastWorkoutSuccessful) {
     // If all sets completed successfully, apply progressive overload (+2.5kg)
-    let newEffectiveWeight = targetEffectiveWeight + increment;
-    if (targetWeighted_kg !== null && targetWeighted_kg > 0) {
-      // If it was a weighted bodyweight exercise, prioritize increasing weighted_kg
+    if (exerciseType === 'bodyweight') {
       suggestedWeighted_kg = (targetWeighted_kg || 0) + increment;
-      suggestedWeight = targetWeight;
     } else {
-      // Otherwise, increase the main weight
       suggestedWeight = targetWeight + increment;
-      suggestedWeighted_kg = null;
-    }
-  } else if (partialFailureCount > 0 && totalFailureCount === 0) {
-    // If partially failed (1-2 reps missing on some sets), keep same weight
-    suggestedWeight = targetWeight;
-    suggestedWeighted_kg = targetWeighted_kg;
-  } else if (totalFailureCount > 0) {
-    // If failed multiple times or significantly, reduce weight (-2.5kg)
-    let newEffectiveWeight = targetEffectiveWeight - increment;
-    if (newEffectiveWeight < 0) newEffectiveWeight = 0; // Ensure weight doesn't go negative
-
-    if (targetWeighted_kg !== null && targetWeighted_kg > 0) {
-      suggestedWeighted_kg = Math.max(0, (targetWeighted_kg || 0) - increment);
-      suggestedWeight = targetWeight;
-    } else {
-      suggestedWeight = Math.max(0, targetWeight - increment);
-      suggestedWeighted_kg = null;
     }
   }
+  // If not successful, weights remain the same as the template target (no change needed here)
 
   // Round to nearest 0.5kg for practical weights
   suggestedWeight = Math.round(suggestedWeight * 2) / 2;
@@ -229,7 +200,7 @@ export const getSmartSetSuggestion = (
   }
 
   return {
-    reps: targetReps, // Reps usually stay the same for progressive overload
+    reps: targetReps,
     weight: suggestedWeight,
     weighted_kg: suggestedWeighted_kg,
   };

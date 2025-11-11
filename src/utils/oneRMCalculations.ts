@@ -17,49 +17,27 @@ export const calculateOneRM = (weight: number, reps: number): number => {
  * Génère un plan d'entraînement (séries cibles) basé sur le 1RM et l'objectif de l'utilisateur,
  * avec des variations de poids/répétitions et une gestion spécifique pour les exercices au poids du corps.
  * @param oneRM Le 1RM calculé pour l'exercice (pour les poids libres/machines, c'est le poids total; pour le poids du corps, c'est le poids lesté max).
- * @param goal L'objectif d'entraînement de l'utilisateur ('strength', 'hypertrophy', 'endurance', etc.).
+ * @param goal L'objectif d'entraînement de l'utilisateur (currently ignored for fixed scheme).
  * @param exerciseType Le type d'exercice ('free_weight', 'machine', 'bodyweight', 'cardio', 'other').
  * @returns Un tableau de TemplateExerciseSet avec les poids et répétitions cibles.
  */
 export const generateTrainingPlan = (oneRM: number, goal: string, exerciseType: string): TemplateExerciseSet[] => {
   let sets: TemplateExerciseSet[] = [];
-  let planDetails: { reps: number; percentage: number }[] = [];
 
-  switch (goal) {
-    case 'strength':
-      planDetails = [
-        { reps: 5, percentage: 0.80 },
-        { reps: 4, percentage: 0.85 },
-        { reps: 3, percentage: 0.90 },
-        { reps: 3, percentage: 0.90 },
-      ];
-      break;
-    case 'hypertrophy':
-      planDetails = [
-        { reps: 10, percentage: 0.70 },
-        { reps: 8, percentage: 0.75 },
-        { reps: 6, percentage: 0.80 },
-      ];
-      break;
-    case 'endurance':
-      planDetails = [
-        { reps: 15, percentage: 0.60 },
-        { reps: 12, percentage: 0.65 },
-        { reps: 10, percentage: 0.70 },
-      ];
-      break;
-    default: // Default to hypertrophy if goal is not recognized or not set
-      planDetails = [
-        { reps: 10, percentage: 0.70 },
-        { reps: 8, percentage: 0.75 },
-        { reps: 6, percentage: 0.80 },
-      ];
-      break;
-  }
+  // Fixed 3-set descending rep scheme with specific 1RM percentages
+  const planDetails = [
+    { reps: 12, percentage: 0.65 }, // Set 1: 12 reps @ 65% of 1RM
+    { reps: 10, percentage: 0.70 }, // Set 2: 10 reps @ 70% of 1RM
+    { reps: 8, percentage: 0.75 },  // Set 3: 8 reps @ 75% of 1RM
+  ];
 
   planDetails.forEach(detail => {
-    // Calculate the target weight based on the 1RM and percentage, rounded to the nearest 2.5 kg
-    let calculatedWeight = Math.round(oneRM * detail.percentage / 2.5) * 2.5;
+    // Calculate the target weight based on the 1RM and percentage
+    let calculatedWeight = oneRM * detail.percentage;
+
+    // Round to the nearest 2.5 kg for practical weights
+    calculatedWeight = Math.round(calculatedWeight / 2.5) * 2.5;
+    
     // Ensure weight is not negative
     if (calculatedWeight < 0) calculatedWeight = 0;
 
