@@ -162,14 +162,14 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
   return (
     <Dialog open={isModalOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
-          <span> {/* Wrapped content in a span */}
+        <Button variant="outline" className="w-full" asChild> {/* Added asChild here */}
+          <span>
             <Calculator className="mr-2 h-4 w-4" /> {triggerButtonText}
           </span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
-        <Form {...form}> {/* Moved Form to wrap all content inside DialogContent */}
+        <Form {...form}>
           <DialogHeader>
             <DialogTitle>Calculateur 1RM & Poids de travail</DialogTitle>
             <DialogDescription>
@@ -265,12 +265,12 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
                   />
                   <FormField
                     control={form.control}
-                    name="targetRepsScheme" // Changed field name
+                    name="targetRepsScheme"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Schéma de répétitions cibles</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: 10,8,6" {...field} /> {/* Changed input type/placeholder */}
+                          <Input placeholder="Ex: 10,8,6" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -312,7 +312,7 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
           <DialogFooter>
             <Button variant="outline" onClick={() => handleOpenChange(false)}>Fermer</Button>
           </DialogFooter>
-        </Form> {/* Close Form here */}
+        </Form>
       </DialogContent>
     </Dialog>
   );
