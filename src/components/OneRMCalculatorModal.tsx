@@ -163,9 +163,7 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
     <Dialog open={isModalOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full">
-          <span> {/* Wrap children in a span */}
-            <Calculator className="mr-2 h-4 w-4" /> {triggerButtonText}
-          </span>
+          <Calculator className="mr-2 h-4 w-4" /> {triggerButtonText}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
