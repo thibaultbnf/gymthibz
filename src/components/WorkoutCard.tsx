@@ -25,13 +25,6 @@ interface WorkoutCardProps {
 }
 
 const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, onDelete }) => {
-  const getWeightDisplay = (exerciseType: string, exerciseName: string, weight: number) => {
-    if (exerciseType === 'free_weight' && exerciseName.toLowerCase().includes('haltère')) {
-      return `${weight} kg (par haltère)`;
-    }
-    return `${weight} kg`;
-  };
-
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -71,7 +64,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, onDelete }) => {
               <ul className="mt-2 space-y-1 pl-7">
                 {exercise.sets.map((set, index) => (
                   <li key={index} className="text-sm text-muted-foreground">
-                    Série {index + 1} : {set.reps} reps @ {getWeightDisplay(exercise.type, exercise.name, set.weight)}
+                    Série {index + 1} : {set.reps} reps @ {set.weight} kg
                     {set.weighted_kg && set.weighted_kg > 0 ? ` (+${set.weighted_kg} kg lesté)` : ''}
                   </li>
                 ))}
