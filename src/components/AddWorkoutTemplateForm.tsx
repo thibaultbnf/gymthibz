@@ -4,7 +4,7 @@ import React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Loader2 } from "lucide-react"; // Added Loader2 icon
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
+import { useExercises } from "@/hooks/use-exercises"; // Import the new hook
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
@@ -29,7 +30,8 @@ const templateExerciseSetSchema = z.object({
 
 const templateExerciseSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1, "Nom de l'exercice requis"),
+  exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"), // New field for exercise ID
+  name: z.string().min(1, "Nom de l'exercice requis"), // Still needed for display
   targetSets: z.array(templateExerciseSetSchema).min(1, "Au moins une série cible est requise"),
 });
 
@@ -66,6 +68,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   onUpdateTemplate,
   onCancel,
 }) => {
+  const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises();
+
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -73,6 +77,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           ...initialData,
           exercises: initialData.exercises.map(ex => ({
             ...ex,
+            exercise_id: ex.exercise_id || "", // Ensure exercise_id is present
             targetSets: ex.targetSets || [{ targetReps: 0, targetWeight: 0 }],
           })),
           focus_area: initialData.focus_area || undefined, // Use undefined for no selection
@@ -84,6 +89,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           exercises: [
             {
               id: crypto.randomUUID(),
+              exercise_id: "", // Initialize with empty string
               name: "",
               targetSets: [{ targetReps: 0, targetWeight: 0 }],
             },
@@ -95,6 +101,15 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     control: form.control,
     name: "exercises",
   });
+
+  const handleExerciseSelect = (exerciseIndex: number, selectedExerciseId: string) => {
+    const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
+    if (selectedExercise) {
+      form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
+      form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
+      form.clearErrors(`exercises.${exerciseIndex}.exercise_id`); // Clear error after selection
+    }
+  };
 
   const onSubmit = (values: WorkoutTemplateFormValues) => {
     const templateToSave: WorkoutTemplate = {
@@ -118,6 +133,32 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     form.reset();
     if (onCancel) onCancel();
   };
+
+  if (exercisesLoading) {
+    return (
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Chargement des exercices...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-40">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (exercisesError) {
+    return (
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Erreur de chargement des exercices</CardTitle>
+        </CardHeader>
+        <CardContent className="text-destructive">
+          Impossible de charger la liste des exercices : {exercisesError.message}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-8">
@@ -193,13 +234,27 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                 </div>
                 <FormField
                   control={form.control}
-                  name={`exercises.${exerciseIndex}.name`}
+                  name={`exercises.${exerciseIndex}.exercise_id`} // Bind to exercise_id
                   render={({ field }) => (
                     <FormItem className="mb-4">
                       <FormLabel>Nom de l'exercice</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Développé couché" {...field} />
-                      </FormControl>
+                      <Select
+                        onValueChange={(value) => handleExerciseSelect(exerciseIndex, value)}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un exercice" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {exercises.map((ex) => (
+                            <SelectItem key={ex.id} value={ex.id}>
+                              {ex.name} ({ex.type})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -277,6 +332,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               onClick={() =>
                 appendExercise({
                   id: crypto.randomUUID(),
+                  exercise_id: "", // Initialize with empty string
                   name: "",
                   targetSets: [{ targetReps: 0, targetWeight: 0 }],
                 })
