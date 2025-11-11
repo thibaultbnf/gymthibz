@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Home, Dumbbell, LayoutTemplate, UserCircle } from "lucide-react"; // Added UserCircle icon
+import { Home, Dumbbell, LayoutTemplate, UserCircle, TrendingUp } from "lucide-react"; // Added TrendingUp icon
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,7 +35,8 @@ const Sidebar: React.FC<{ currentPath: string }> = ({ currentPath }) => {
     { to: "/", icon: Home, label: "Tableau de bord" },
     { to: "/workouts", icon: Dumbbell, label: "Entraînements" },
     { to: "/workout-templates", icon: LayoutTemplate, label: "Modèles d'entraînements" },
-    { to: "/profile", icon: UserCircle, label: "Mon Profil" }, // New link to profile page
+    { to: "/progress", icon: TrendingUp, label: "Progression" }, // New link
+    { to: "/profile", icon: UserCircle, label: "Mon Profil" },
   ];
 
   return (
