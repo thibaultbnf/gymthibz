@@ -140,7 +140,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       } else {
         // Existing logic for smart suggestions if history is available
         const currentTargetSets = form.getValues(`exercises.${exerciseIndex}.targetSets`);
-        const updatedTargetSets = currentTargetSets.map(set => {
+        const updatedTargetSets = currentTargetSets.map((set: TemplateExerciseSet) => { // Explicitly type 'set' here
           const suggestion = getSmartSetSuggestion(exerciseHistory, set);
           return {
             targetReps: suggestion.reps,

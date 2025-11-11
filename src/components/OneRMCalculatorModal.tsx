@@ -169,13 +169,13 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Calculateur 1RM & Poids de travail</DialogTitle>
-          <DialogDescription>
-            Estimez votre One-Rep Max (1RM) et obtenez des suggestions de poids pour vos séries d'entraînement.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
+        <Form {...form}> {/* Moved Form to wrap all content inside DialogContent */}
+          <DialogHeader>
+            <DialogTitle>Calculateur 1RM & Poids de travail</DialogTitle>
+            <DialogDescription>
+              Estimez votre One-Rep Max (1RM) et obtenez des suggestions de poids pour vos séries d'entraînement.
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
@@ -235,84 +235,84 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
             </div>
             <Button type="submit" className="w-full">Calculer 1RM</Button>
           </form>
-        </Form>
 
-        {estimated1RM !== null && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Dumbbell className="mr-2 h-5 w-5 text-primary" /> Résultats
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-lg font-semibold">
-                1RM Estimé : <span className="text-primary">{estimated1RM.toFixed(1)} kg</span>
-              </div>
-              <Separator />
-              <h3 className="text-md font-semibold">Générer des séries de travail :</h3>
-              <div className="grid grid-cols-2 gap-4">
+          {estimated1RM !== null && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Dumbbell className="mr-2 h-5 w-5 text-primary" /> Résultats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-lg font-semibold">
+                  1RM Estimé : <span className="text-primary">{estimated1RM.toFixed(1)} kg</span>
+                </div>
+                <Separator />
+                <h3 className="text-md font-semibold">Générer des séries de travail :</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="numSets"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre de séries</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Ex: 3" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="targetRepsScheme" // Changed field name
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Schéma de répétitions cibles</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: 10,8,6" {...field} /> {/* Changed input type/placeholder */}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="numSets"
+                  name="targetPercentage"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre de séries</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="Ex: 3" {...field} />
-                      </FormControl>
+                      <FormLabel>Pourcentage du 1RM</FormLabel>
+                      <Select onValueChange={(value) => field.onChange(parseFloat(value))} value={field.value?.toString()}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un pourcentage" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {workingWeights.map((ww) => (
+                            <SelectItem key={ww.percentage} value={ww.percentage.toString()}>
+                              {(ww.percentage * 100).toFixed(0)}% ({ww.weight.toFixed(1)} kg)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="targetRepsScheme" // Changed field name
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Schéma de répétitions cibles</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: 10,8,6" {...field} /> {/* Changed input type/placeholder */}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="targetPercentage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pourcentage du 1RM</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(parseFloat(value))} value={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un pourcentage" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {workingWeights.map((ww) => (
-                          <SelectItem key={ww.percentage} value={ww.percentage.toString()}>
-                            {(ww.percentage * 100).toFixed(0)}% ({ww.weight.toFixed(1)} kg)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                {onApplySets && (
+                  <Button type="button" onClick={handleApplySets} className="w-full mt-4">
+                    Appliquer les séries au formulaire
+                  </Button>
                 )}
-              />
-              {onApplySets && (
-                <Button type="button" onClick={handleApplySets} className="w-full mt-4">
-                  Appliquer les séries au formulaire
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>Fermer</Button>
-        </DialogFooter>
+              </CardContent>
+            </Card>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>Fermer</Button>
+          </DialogFooter>
+        </Form> {/* Close Form here */}
       </DialogContent>
     </Dialog>
   );

@@ -86,7 +86,11 @@ const ExercisesPage: React.FC = () => {
         created_at: editingExercise.created_at,
       });
     } else {
-      await addExerciseDefinition(values);
+      const newExerciseData: Omit<ExerciseDefinition, "id" | "created_at"> = { // Explicitly type newExerciseData
+        name: values.name,
+        type: values.type,
+      };
+      await addExerciseDefinition(newExerciseData);
     }
     setShowAddForm(false);
     setEditingExercise(null);
