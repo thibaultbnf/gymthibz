@@ -110,12 +110,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     ? workoutTemplates.filter(t => t.focus_area && initialFocusAreasArray.includes(t.focus_area))
     : workoutTemplates;
 
-  React.useEffect(() => {
-    if (initialFocusAreasArray.length > 0 && filteredTemplates.length > 0 && !selectedTemplateId) {
-      form.setValue("templateId", filteredTemplates[0].id);
-    }
-  }, [initialFocusAreasArray, filteredTemplates, form, selectedTemplateId]);
-
+  // Effect to populate exercises when a template is selected
   React.useEffect(() => {
     if (selectedTemplateId) {
       const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
@@ -139,18 +134,23 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         });
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else if (initialFocusAreasArray.length === 0) {
-      form.setValue("exercises", [
-        {
-          id: crypto.randomUUID(),
-          exercise_id: "", // Initialize with empty string
-          name: "",
-          type: "", // Initialize with empty string
-          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
-        },
-      ]);
+    } else {
+      // If no template is selected, ensure there's at least one empty exercise row.
+      // Only reset if there are no exercises or if the existing exercises are from a previous template selection.
+      const currentExercises = form.getValues("exercises");
+      if (currentExercises.length === 0 || currentExercises[0].exercise_id !== "") {
+        form.setValue("exercises", [
+          {
+            id: crypto.randomUUID(),
+            exercise_id: "",
+            name: "",
+            type: "",
+            sets: [{ reps: 0, weight: 0, weighted_kg: 0 }],
+          },
+        ]);
+      }
     }
-  }, [selectedTemplateId, workoutTemplates, form, initialFocusAreasArray, allWorkouts]);
+  }, [selectedTemplateId, workoutTemplates, form, allWorkouts]);
 
   const handleExerciseSelect = (exerciseIndex: number, selectedExerciseId: string) => {
     const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
@@ -286,7 +286,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un modèle (optionnel)" />
+                        <SelectValue placeholder={initialFocusAreasArray.length > 0 ? `Sélectionner un modèle pour ${initialFocusAreasArray.map(area => focusAreaLabels[area] || area).join(', ')}` : "Sélectionner un modèle (optionnel)"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
