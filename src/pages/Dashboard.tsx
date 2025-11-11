@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import AICoachSection from "@/components/AICoachSection"; // Import the new AI Coach section
 
 const Dashboard = () => {
   return (
@@ -17,6 +18,7 @@ const Dashboard = () => {
             <p className="mt-2">Commencez par enregistrer un entraînement !</p>
           </CardContent>
         </Card>
+        <AICoachSection /> {/* Add the AI Coach section here */}
         <Card>
           <CardHeader>
             <CardTitle>Progrès Hebdomadaire</CardTitle>
