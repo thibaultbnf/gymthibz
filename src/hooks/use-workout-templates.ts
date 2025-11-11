@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { WorkoutTemplate } from "@/types/workout";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/contexts/SessionContext";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 export function useWorkoutTemplates() {
   const { user, loading: sessionLoading } = useSession();
@@ -68,6 +68,7 @@ export function useWorkoutTemplates() {
       showError("Vous devez être connecté pour ajouter un modèle d'entraînement.");
       return;
     }
+    setLoading(true); // Start loading for add operation
     const { data, error } = await supabase
       .from("workout_templates")
       .insert({ ...newTemplate, user_id: user.id })
@@ -79,8 +80,10 @@ export function useWorkoutTemplates() {
       setError(error.message);
       showError(`Erreur lors de l'ajout du modèle d'entraînement: ${error.message}`);
     } else if (data) {
+      showSuccess("Modèle d'entraînement ajouté avec succès !");
       // The realtime subscription will handle updating the state
     }
+    setLoading(false); // End loading for add operation
   };
 
   const updateTemplate = async (updatedTemplate: WorkoutTemplate) => {
@@ -88,6 +91,7 @@ export function useWorkoutTemplates() {
       showError("Vous devez être connecté pour modifier un modèle d'entraînement.");
       return;
     }
+    setLoading(true); // Start loading for update operation
     const { data, error } = await supabase
       .from("workout_templates")
       .update({ ...updatedTemplate, user_id: user.id })
@@ -100,8 +104,10 @@ export function useWorkoutTemplates() {
       setError(error.message);
       showError(`Erreur lors de la mise à jour du modèle d'entraînement: ${error.message}`);
     } else if (data) {
+      showSuccess("Modèle d'entraînement mis à jour avec succès !");
       // The realtime subscription will handle updating the state
     }
+    setLoading(false); // End loading for update operation
   };
 
   const deleteTemplate = async (templateId: string) => {
@@ -109,6 +115,7 @@ export function useWorkoutTemplates() {
       showError("Vous devez être connecté pour supprimer un modèle d'entraînement.");
       return;
     }
+    setLoading(true); // Start loading for delete operation
     const { error } = await supabase
       .from("workout_templates")
       .delete()
@@ -119,8 +126,10 @@ export function useWorkoutTemplates() {
       setError(error.message);
       showError(`Erreur lors de la suppression du modèle d'entraînement: ${error.message}`);
     } else {
+      showSuccess("Modèle d'entraînement supprimé avec succès !");
       // The realtime subscription will handle updating the state
     }
+    setLoading(false); // End loading for delete operation
   };
 
   return { templates, addTemplate, updateTemplate, deleteTemplate, loading, error };

@@ -126,7 +126,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     return "Poids cible (kg)";
   };
 
-  const onSubmit = (values: WorkoutTemplateFormValues) => {
+  const onSubmit = async (values: WorkoutTemplateFormValues) => {
     const templateToSave: WorkoutTemplate = {
       id: initialData?.id || crypto.randomUUID(),
       name: values.name,
@@ -142,15 +142,17 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       })),
     };
 
-    if (initialData && onUpdateTemplate) {
-      onUpdateTemplate(templateToSave);
-      showSuccess("Modèle d'entraînement mis à jour avec succès !");
-    } else {
-      onAddTemplate(templateToSave);
-      showSuccess("Modèle d'entraînement ajouté avec succès !");
+    try {
+      if (initialData && onUpdateTemplate) {
+        await onUpdateTemplate(templateToSave);
+      } else {
+        await onAddTemplate(templateToSave);
+      }
+      form.reset();
+      if (onCancel) onCancel();
+    } catch (error: any) {
+      console.error("Form submission error:", error);
     }
-    form.reset();
-    if (onCancel) onCancel();
   };
 
   if (exercisesLoading) {
