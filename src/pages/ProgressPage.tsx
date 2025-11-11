@@ -3,15 +3,22 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWorkouts } from "@/hooks/use-workouts";
+import { useBodyMeasurements } from "@/hooks/use-body-measurements"; // Import useBodyMeasurements
 import WorkoutVolumeChart from "@/components/charts/WorkoutVolumeChart";
-import { calculatePersonalRecords } from "@/utils/workoutCalculations"; // Import the new utility
+import BodyMeasurementChart from "@/components/charts/BodyMeasurementChart"; // Import BodyMeasurementChart
+import { calculatePersonalRecords } from "@/utils/workoutCalculations";
 import { Loader2, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const ProgressPage: React.FC = () => {
-  const { workouts, loading, error } = useWorkouts();
-  const personalRecords = calculatePersonalRecords(workouts); // Calculate PRs
+  const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkouts();
+  const { measurements, loading: measurementsLoading, error: measurementsError } = useBodyMeasurements(); // Fetch body measurements
+
+  const personalRecords = calculatePersonalRecords(workouts);
+
+  const loading = workoutsLoading || measurementsLoading;
+  const error = workoutsError || measurementsError;
 
   if (loading) {
     return (
@@ -35,7 +42,7 @@ const ProgressPage: React.FC = () => {
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-8">Suivi de ma Progression</h1>
 
-      <div className="grid grid-cols-1 gap-6 mb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
         <Card>
           <CardHeader>
             <CardTitle>Volume d'entraînement par date</CardTitle>
@@ -46,6 +53,36 @@ const ProgressPage: React.FC = () => {
             ) : (
               <p className="text-center text-muted-foreground">
                 Enregistrez des entraînements pour voir votre progression ici !
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Évolution du Poids</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {measurements.length > 0 ? (
+              <BodyMeasurementChart measurements={measurements} dataKey="weight_kg" title="Poids" unit="kg" />
+            ) : (
+              <p className="text-center text-muted-foreground">
+                Enregistrez vos mensurations pour voir votre évolution de poids ici !
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Évolution de la Taille</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {measurements.length > 0 ? (
+              <BodyMeasurementChart measurements={measurements} dataKey="waist_cm" title="Taille" unit="cm" />
+            ) : (
+              <p className="text-center text-muted-foreground">
+                Enregistrez vos mensurations pour voir votre évolution de taille ici !
               </p>
             )}
           </CardContent>
