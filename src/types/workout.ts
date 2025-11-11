@@ -8,6 +8,7 @@ export interface Exercise {
   id: string; // Unique ID for each exercise within a workout
   exercise_id: string; // Reference to the master exercise definition
   name: string; // Denormalized name for easier display
+  type: string; // ADDED: Type of exercise (e.g., 'free_weight', 'bodyweight')
   sets: ExerciseSet[];
 }
 
@@ -21,6 +22,7 @@ export interface TemplateExercise {
   id: string; // Unique ID for each exercise within a template
   exercise_id: string; // Reference to the master exercise definition
   name: string; // Denormalized name for easier display
+  type: string; // ADDED: Type of exercise (e.g., 'free_weight', 'bodyweight')
   targetSets: TemplateExerciseSet[];
 }
 
