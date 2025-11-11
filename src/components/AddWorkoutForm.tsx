@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, PlusCircle, Trash2, Lightbulb, Loader2 } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Lightbulb, Loader2, Calculator } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,12 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Workout, WorkoutTemplate } from "@/types/workout";
+import { Workout, WorkoutTemplate, ExerciseSet } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { useExercises } from "@/hooks/use-exercises";
 import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
+import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal"; // Import the enhanced modal
 
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
@@ -97,7 +98,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     },
   });
 
-  const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+  const { fields: exerciseFields, append: appendExercise, remove: removeExercise, update: updateExercise } = useFieldArray({
     control: form.control,
     name: "exercises",
   });
@@ -139,7 +140,8 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         });
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else if (initialFocusAreasArray.length === 0) {
+    } else if (initialFocusAreasArray.length === 0 && exerciseFields.length === 1 && form.getValues("exercises")[0].exercise_id === "") {
+      // Only reset if it's the initial empty state and no template is selected
       form.setValue("exercises", [
         {
           id: crypto.randomUUID(),
@@ -150,7 +152,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         },
       ]);
     }
-  }, [selectedTemplateId, workoutTemplates, form, initialFocusAreasArray, allWorkouts]);
+  }, [selectedTemplateId, workoutTemplates, form, initialFocusAreasArray, allWorkouts, exerciseFields.length]);
 
   const handleExerciseSelect = (exerciseIndex: number, selectedExerciseId: string) => {
     const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
@@ -160,6 +162,15 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
       form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // ADDED: Set type
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
     }
+  };
+
+  const handleApplySetsFrom1RM = (exerciseIndex: number, sets: ExerciseSet[]) => {
+    const currentExercise = form.getValues(`exercises.${exerciseIndex}`);
+    updateExercise(exerciseIndex, {
+      ...currentExercise,
+      sets: sets,
+    });
+    showSuccess("Séries générées et appliquées avec succès !");
   };
 
   const onSubmit = (values: WorkoutFormValues) => {
@@ -340,6 +351,16 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                       </FormItem>
                     )}
                   />
+
+                  {form.watch(`exercises.${exerciseIndex}.exercise_id`) && (
+                    <div className="mb-4">
+                      <OneRMCalculatorModal
+                        onApplySets={(sets) => handleApplySetsFrom1RM(exerciseIndex, sets)}
+                        triggerButtonText="Générer les séries avec le calculateur 1RM"
+                        initialExerciseId={form.watch(`exercises.${exerciseIndex}.exercise_id`)}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     <FormLabel>Séries</FormLabel>
