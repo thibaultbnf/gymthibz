@@ -30,7 +30,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  useFormContext,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -149,7 +148,7 @@ const ActiveWorkoutPage: React.FC = () => {
       if (selectedTemplate) {
         const exercisesFromTemplate = selectedTemplate.exercises.map(templateEx => {
           const exerciseHistory = getExerciseHistory(allWorkouts, templateEx.name);
-          const lastWorkoutSuccessful = checkLastWorkoutSuccess(exerciseHistory, templateEx.targetSets); // Check overall success
+          const lastWorkoutSuccessful = templateEx ? checkLastWorkoutSuccess(exerciseHistory, templateEx.targetSets) : false; // Check overall success
 
           return {
             id: crypto.randomUUID(),
@@ -246,7 +245,7 @@ const ActiveWorkoutPage: React.FC = () => {
 
   const onSubmit = async (values: ActiveWorkoutFormValues) => {
     const newWorkout: Omit<Workout, "id"> = {
-      date: format(values.date, "yyyy-MM-DD"),
+      date: format(values.date, "yyyy-MM-dd"), // Corrected format
       exercises: values.exercises.map(ex => ({
         id: ex.id || crypto.randomUUID(),
         exercise_id: ex.exercise_id,

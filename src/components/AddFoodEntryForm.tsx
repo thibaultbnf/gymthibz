@@ -87,7 +87,7 @@ const AddFoodEntryForm: React.FC<AddFoodEntryFormProps> = ({
 
   const onSubmit = async (values: FoodEntryFormValues) => {
     const entryToSave: Omit<FoodEntry, "id"> = {
-      date: format(values.date, "yyyy-MM-dd"),
+      date: format(values.date, "yyyy-MM-dd"), // Corrected format
       items: values.items.map(item => ({
         id: item.id || crypto.randomUUID(),
         name: item.name,
