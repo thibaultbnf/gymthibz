@@ -127,6 +127,13 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   };
 
   const onSubmit = async (values: WorkoutTemplateFormValues) => {
+    // Log form validation errors if any
+    if (Object.keys(form.formState.errors).length > 0) {
+      console.error("Form validation errors:", form.formState.errors);
+      showError("Veuillez corriger les erreurs dans le formulaire.");
+      return;
+    }
+
     const templateToSave: WorkoutTemplate = {
       id: initialData?.id || crypto.randomUUID(),
       name: values.name,
@@ -141,6 +148,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
         })),
       })),
     };
+
+    console.log("Template data being sent to Supabase:", templateToSave); // Log data before sending
 
     try {
       if (initialData && onUpdateTemplate) {

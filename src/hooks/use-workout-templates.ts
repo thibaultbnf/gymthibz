@@ -93,7 +93,7 @@ export function useWorkoutTemplates() {
       throw new Error("User not authenticated."); // Throw error for form to catch
     }
     setLoading(true); // Start loading for update operation
-    console.log("Attempting to update template:", updatedTemplate); // Added log
+    console.log("Attempting to update template with data:", updatedTemplate); // Added log
     const { data, error } = await supabase
       .from("workout_templates")
       .update({ ...updatedTemplate, user_id: user.id })
@@ -102,7 +102,7 @@ export function useWorkoutTemplates() {
       .single();
 
     if (error) {
-      console.error("Error updating workout template:", error);
+      console.error("Error updating workout template:", error); // Log the full error object
       setError(error.message);
       showError(`Erreur lors de la mise à jour du modèle d'entraînement: ${error.message}`);
       setLoading(false); // Ensure loading is reset on error
