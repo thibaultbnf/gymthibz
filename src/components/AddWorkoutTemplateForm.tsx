@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react"; // Import useState
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Trash2, Loader2, Calculator } from "lucide-react"; // Import Calculator icon
+import { PlusCircle, Trash2, Loader2, Calculator } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WorkoutTemplate, ExerciseSet, TemplateExerciseSet } from "@/types/workout"; // Import ExerciseSet
+import { WorkoutTemplate, ExerciseSet, TemplateExerciseSet } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useExercises } from "@/hooks/use-exercises";
 import { useWorkouts } from "@/hooks/use-workouts";
 import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
-import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal"; // Import the OneRMCalculatorModal
+import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal";
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
@@ -74,7 +74,10 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   onCancel,
 }) => {
   const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises();
-  const { workouts: allWorkouts } = useWorkouts(); // Get all workouts for history
+  const { workouts: allWorkouts } = useWorkouts();
+
+  // State to control opening the 1RM calculator for a specific exercise index
+  const [open1RMCalculatorForExerciseIndex, setOpen1RMCalculatorForExerciseIndex] = useState<number | null>(null);
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
@@ -124,27 +127,36 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type);
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
 
-      // Fetch history for the selected exercise
       const exerciseHistory = getExerciseHistory(allWorkouts, selectedExercise.name);
 
-      // Apply smart suggestions to existing target sets or default new ones
-      const currentTargetSets = form.getValues(`exercises.${exerciseIndex}.targetSets`);
-      const updatedTargetSets = currentTargetSets.map(set => {
-        const suggestion = getSmartSetSuggestion(exerciseHistory, set);
-        return {
-          targetReps: suggestion.reps,
-          targetWeight: suggestion.weight,
-          targetWeighted_kg: selectedExercise.type === 'bodyweight' ? (suggestion.weighted_kg || 0) : 0,
-        };
-      });
-      form.setValue(`exercises.${exerciseIndex}.targetSets`, updatedTargetSets);
+      if (exerciseHistory.length === 0) {
+        // If no history, automatically open the 1RM calculator and provide guidance
+        setOpen1RMCalculatorForExerciseIndex(exerciseIndex);
+        showSuccess("Veuillez utiliser le calculateur 1RM pour définir les séries cibles de cet exercice.");
+        // Ensure default sets are present if none exist
+        if (form.getValues(`exercises.${exerciseIndex}.targetSets`).length === 0) {
+            form.setValue(`exercises.${exerciseIndex}.targetSets`, [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }]);
+        }
+      } else {
+        // Existing logic for smart suggestions if history is available
+        const currentTargetSets = form.getValues(`exercises.${exerciseIndex}.targetSets`);
+        const updatedTargetSets = currentTargetSets.map(set => {
+          const suggestion = getSmartSetSuggestion(exerciseHistory, set);
+          return {
+            targetReps: suggestion.reps,
+            targetWeight: suggestion.weight,
+            targetWeighted_kg: selectedExercise.type === 'bodyweight' ? (suggestion.weighted_kg || 0) : 0,
+          };
+        });
+        form.setValue(`exercises.${exerciseIndex}.targetSets`, updatedTargetSets);
 
-      // If the exercise type is not 'bodyweight', ensure targetWeighted_kg is 0
-      if (selectedExercise.type !== 'bodyweight') {
-        form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
-          ...set,
-          targetWeighted_kg: 0,
-        })));
+        // If the exercise type is not 'bodyweight', ensure targetWeighted_kg is 0
+        if (selectedExercise.type !== 'bodyweight') {
+          form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
+            ...set,
+            targetWeighted_kg: 0,
+          })));
+        }
       }
     }
   };
@@ -161,6 +173,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       targetSets: newTargetSets,
     });
     showSuccess("Séries générées et appliquées avec succès au modèle !");
+    setOpen1RMCalculatorForExerciseIndex(null); // Close the modal after applying
   };
 
   const getWeightLabel = (exerciseType: string, exerciseName: string) => {
@@ -358,6 +371,12 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                         onApplySets={(sets) => handleApplySetsFrom1RM(exerciseIndex, sets)}
                         triggerButtonText="Générer les séries avec le calculateur 1RM"
                         initialExerciseId={currentExerciseId}
+                        open={open1RMCalculatorForExerciseIndex === exerciseIndex} // Control open state
+                        onOpenChange={(isOpen) => {
+                          if (!isOpen) {
+                            setOpen1RMCalculatorForExerciseIndex(null); // Close the modal
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -403,9 +422,9 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                                   <Input type="number" step="0.5" placeholder="0" {...field} />
                                 </FormControl>
                                 <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            </FormItem>
+                          )}
+                        />
                         )}
                         <Button
                           type="button"
