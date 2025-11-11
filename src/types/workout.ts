@@ -1,6 +1,7 @@
 export interface ExerciseSet {
   reps: number;
   weight: number;
+  weighted_kg?: number | null; // New field for additional weighted weight
 }
 
 export interface Exercise {
@@ -13,6 +14,7 @@ export interface Exercise {
 export interface TemplateExerciseSet {
   targetReps: number;
   targetWeight: number;
+  targetWeighted_kg?: number | null; // New field for additional weighted weight in templates
 }
 
 export interface TemplateExercise {

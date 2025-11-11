@@ -26,6 +26,7 @@ import { useExercises } from "@/hooks/use-exercises"; // Import the new hook
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
   targetWeight: z.coerce.number().min(0, "Poids cible requis"),
+  targetWeighted_kg: z.coerce.number().min(0, "Poids lesté cible requis").optional().or(z.literal(0)), // New field
 });
 
 const templateExerciseSchema = z.object({
@@ -78,7 +79,10 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           exercises: initialData.exercises.map(ex => ({
             ...ex,
             exercise_id: ex.exercise_id || "", // Ensure exercise_id is present
-            targetSets: ex.targetSets || [{ targetReps: 0, targetWeight: 0 }],
+            targetSets: ex.targetSets.map(set => ({
+              ...set,
+              targetWeighted_kg: set.targetWeighted_kg || 0, // Ensure targetWeighted_kg is present
+            })) || [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
           })),
           focus_area: initialData.focus_area || undefined, // Use undefined for no selection
         }
@@ -91,7 +95,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               id: crypto.randomUUID(),
               exercise_id: "", // Initialize with empty string
               name: "",
-              targetSets: [{ targetReps: 0, targetWeight: 0 }],
+              targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
         },
@@ -120,6 +124,10 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       exercises: values.exercises.map(ex => ({
         ...ex,
         id: ex.id || crypto.randomUUID(),
+        targetSets: ex.targetSets.map(set => ({
+          ...set,
+          targetWeighted_kg: set.targetWeighted_kg && set.targetWeighted_kg > 0 ? set.targetWeighted_kg : null,
+        })),
       })),
     };
 
@@ -290,6 +298,19 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name={`exercises.${exerciseIndex}.targetSets.${setIndex}.targetWeighted_kg`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Poids lesté cible (kg)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.5" placeholder="0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <Button
                         type="button"
                         variant="outline"
@@ -316,7 +337,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                     onClick={() =>
                       form.setValue(`exercises.${exerciseIndex}.targetSets`, [
                         ...form.getValues(`exercises.${exerciseIndex}.targetSets`),
-                        { targetReps: 0, targetWeight: 0 },
+                        { targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 },
                       ])
                     }
                   >
@@ -334,7 +355,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                   id: crypto.randomUUID(),
                   exercise_id: "", // Initialize with empty string
                   name: "",
-                  targetSets: [{ targetReps: 0, targetWeight: 0 }],
+                  targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
                 })
               }
             >
