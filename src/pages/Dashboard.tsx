@@ -83,7 +83,7 @@ const Dashboard = () => {
                   Choisissez un modèle d'entraînement pour votre séance.
                 </p>
                 <Button asChild className="w-full">
-                  <Link to={`/workouts?focusArea=${todaysFocusAreas.join(',')}`}>
+                  <Link to={`/start-workout?focusArea=${todaysFocusAreas.join(',')}`}>
                     <Play className="h-4 w-4 mr-2" /> Démarrer l'entraînement
                   </Link>
                 </Button>
