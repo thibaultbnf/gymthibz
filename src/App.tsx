@@ -10,7 +10,8 @@ import WorkoutsPage from "./pages/WorkoutsPage";
 import WorkoutTemplatesPage from "./pages/WorkoutTemplatesPage";
 import Login from "./pages/Login";
 import ProfilePage from "./pages/ProfilePage";
-import ProgressPage from "./pages/ProgressPage"; // Import the ProgressPage
+import ProgressPage from "./pages/ProgressPage";
+import WorkoutSchedulePage from "./pages/WorkoutSchedulePage"; // Import the WorkoutSchedulePage
 import { SessionContextProvider } from "./contexts/SessionContext";
 
 const queryClient = new QueryClient();
@@ -28,7 +29,8 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="workouts" element={<WorkoutsPage />} />
               <Route path="workout-templates" element={<WorkoutTemplatesPage />} />
-              <Route path="progress" element={<ProgressPage />} /> {/* Add the progress route */}
+              <Route path="workout-schedule" element={<WorkoutSchedulePage />} /> {/* Add the schedule route */}
+              <Route path="progress" element={<ProgressPage />} />
               <Route path="profile" element={<ProfilePage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

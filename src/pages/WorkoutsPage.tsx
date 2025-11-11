@@ -1,15 +1,38 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import AddWorkoutForm from "@/components/AddWorkoutForm";
 import WorkoutCard from "@/components/WorkoutCard";
 import { useWorkouts } from "@/hooks/use-workouts";
-import { useWorkoutTemplates } from "@/hooks/use-workout-templates"; // New import
+import { useWorkoutTemplates } from "@/hooks/use-workout-templates";
 import { Workout } from "@/types/workout";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { useSearchParams } from "react-router-dom"; // Import useSearchParams
 
 const WorkoutsPage = () => {
   const { workouts, addWorkout, deleteWorkout } = useWorkouts();
-  const { templates: workoutTemplates } = useWorkoutTemplates(); // Fetch templates
+  const { templates: workoutTemplates } = useWorkoutTemplates();
+  const [searchParams, setSearchParams] = useSearchParams(); // Hook to read/set URL params
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const initialTemplateId = searchParams.get("templateId");
+
+  useEffect(() => {
+    if (initialTemplateId) {
+      setShowAddForm(true);
+    }
+  }, [initialTemplateId]);
+
+  const handleAddWorkoutClick = () => {
+    setShowAddForm(true);
+    setSearchParams({}); // Clear templateId from URL when manually opening form
+  };
+
+  const handleFormSubmitted = () => {
+    setShowAddForm(false);
+    setSearchParams({}); // Clear any templateId from URL
+  };
 
   const sortedWorkouts = [...workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -17,7 +40,20 @@ const WorkoutsPage = () => {
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-8">Mes Entraînements</h1>
 
-      <AddWorkoutForm onAddWorkout={addWorkout} workoutTemplates={workoutTemplates} /> {/* Pass templates */}
+      {!showAddForm && (
+        <Button onClick={handleAddWorkoutClick} className="mb-8">
+          <PlusCircle className="h-4 w-4 mr-2" /> Ajouter un nouvel entraînement
+        </Button>
+      )}
+
+      {showAddForm && (
+        <AddWorkoutForm
+          onAddWorkout={addWorkout}
+          workoutTemplates={workoutTemplates}
+          initialTemplateId={initialTemplateId || undefined}
+          onFormSubmitted={handleFormSubmitted}
+        />
+      )}
 
       <h2 className="text-3xl font-bold mb-6 mt-12">Historique des entraînements</h2>
       {sortedWorkouts.length === 0 ? (

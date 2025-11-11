@@ -50,14 +50,21 @@ type WorkoutFormValues = z.infer<typeof formSchema>;
 interface AddWorkoutFormProps {
   onAddWorkout: (workout: Workout) => void;
   workoutTemplates: WorkoutTemplate[];
+  initialTemplateId?: string; // New prop for initial template selection
+  onFormSubmitted?: () => void; // Callback to hide form after submission
 }
 
-const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout, workoutTemplates }) => {
+const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
+  onAddWorkout,
+  workoutTemplates,
+  initialTemplateId,
+  onFormSubmitted,
+}) => {
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      templateId: "",
+      templateId: initialTemplateId || "", // Use initialTemplateId if provided
       exercises: [
         {
           id: crypto.randomUUID(),
@@ -76,6 +83,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout, workoutTe
   const selectedTemplateId = form.watch("templateId");
 
   React.useEffect(() => {
+    // Only apply template if it's explicitly selected or provided initially
     if (selectedTemplateId) {
       const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
       if (selectedTemplate) {
@@ -89,7 +97,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout, workoutTe
         }));
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else {
+    } else if (!initialTemplateId) { // Only reset if no initial template and none selected
       // If no template selected, reset to a single empty exercise
       form.setValue("exercises", [
         {
@@ -99,7 +107,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout, workoutTe
         },
       ]);
     }
-  }, [selectedTemplateId, workoutTemplates, form]);
+  }, [selectedTemplateId, workoutTemplates, form, initialTemplateId]);
 
 
   const onSubmit = (values: WorkoutFormValues) => {
@@ -124,6 +132,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout, workoutTe
       ],
     });
     showSuccess("Entraînement ajouté avec succès !");
+    if (onFormSubmitted) onFormSubmitted();
   };
 
   return (

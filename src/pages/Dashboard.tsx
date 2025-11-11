@@ -5,11 +5,17 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import AICoachSection from "@/components/AICoachSection";
 import { useSession } from "@/contexts/SessionContext";
 import { useWorkouts } from "@/hooks/use-workouts";
-import { Dumbbell, CalendarDays, ListChecks } from "lucide-react"; // Import new icons
+import { useWorkoutSchedule } from "@/hooks/use-workout-schedule"; // Import useWorkoutSchedule
+import { Dumbbell, CalendarDays, ListChecks, Play } from "lucide-react"; // Import Play icon
+import { Link } from "react-router-dom"; // Import Link for navigation
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const Dashboard = () => {
   const { user } = useSession();
   const { workouts } = useWorkouts();
+  const { schedule, loading: scheduleLoading } = useWorkoutSchedule();
 
   // Calculate some basic stats
   const totalWorkouts = workouts.length;
@@ -20,6 +26,12 @@ const Dashboard = () => {
     : null;
   
   const totalExercisesLogged = workouts.reduce((acc, workout) => acc + workout.exercises.length, 0);
+
+  // Determine today's workout
+  const today = new Date();
+  const currentDayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, ..., 6 for Saturday
+  const todaysScheduledWorkout = schedule.find(s => s.day_of_week === currentDayOfWeek);
+  const todaysTemplate = todaysScheduledWorkout?.workout_templates;
 
   return (
     <div className="container mx-auto py-8">
@@ -36,6 +48,37 @@ const Dashboard = () => {
         </Card>
 
         <AICoachSection />
+
+        <Card className="lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-medium">Entraînement du jour ({format(today, "EEEE", { locale: fr })})</CardTitle>
+            <Dumbbell className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {scheduleLoading ? (
+              <p className="text-muted-foreground">Chargement du programme...</p>
+            ) : todaysTemplate ? (
+              <>
+                <div className="text-2xl font-bold mb-2">{todaysTemplate.name}</div>
+                <p className="text-sm text-muted-foreground mb-4">{todaysTemplate.description || "Aucune description."}</p>
+                <Button asChild className="w-full">
+                  <Link to={`/workouts?templateId=${todaysTemplate.id}`}>
+                    <Play className="h-4 w-4 mr-2" /> Démarrer l'entraînement
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-lg text-muted-foreground mb-4">Aucun entraînement programmé pour aujourd'hui.</p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/workout-schedule">
+                    <CalendarDays className="h-4 w-4 mr-2" /> Définir mon programme
+                  </Link>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
