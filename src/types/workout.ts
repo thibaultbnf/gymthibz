@@ -43,3 +43,15 @@ export interface Profile {
   goal: string | null;
   updated_at: string | null;
 }
+
+export interface BodyMeasurement {
+  id: string;
+  date: string; // ISO date string (e.g., 'YYYY-MM-DD')
+  weight_kg: number | null;
+  chest_cm: number | null;
+  waist_cm: number | null;
+  arm_cm: number | null;
+  leg_cm: number | null;
+  hips_cm: number | null;
+  neck_cm: number | null;
+}
