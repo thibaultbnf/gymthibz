@@ -77,17 +77,17 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     defaultValues: initialData
       ? {
           name: initialData.name,
-          description: initialData.description,
-          focus_area: initialData.focus_area || undefined,
+          description: initialData.description ?? "",
+          focus_area: initialData.focus_area ?? undefined,
           exercises: initialData.exercises.map(ex => ({
             id: ex.id,
-            exercise_id: ex.exercise_id || "",
+            exercise_id: ex.exercise_id ?? "",
             name: ex.name,
-            type: ex.type || "",
+            type: ex.type ?? "",
             targetSets: ex.targetSets.map(set => ({
               targetReps: set.targetReps,
               targetWeight: set.targetWeight,
-              targetWeighted_kg: set.targetWeighted_kg || 0,
+              targetWeighted_kg: set.targetWeighted_kg ?? 0,
             })),
           })),
         }
