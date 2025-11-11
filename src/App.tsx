@@ -8,8 +8,9 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import WorkoutsPage from "./pages/WorkoutsPage";
 import WorkoutTemplatesPage from "./pages/WorkoutTemplatesPage";
-import Login from "./pages/Login"; // Import the Login page
-import { SessionContextProvider } from "./contexts/SessionContext"; // Import the SessionContextProvider
+import Login from "./pages/Login";
+import ProfilePage from "./pages/ProfilePage"; // Import the ProfilePage
+import { SessionContextProvider } from "./contexts/SessionContext";
 
 const queryClient = new QueryClient();
 
@@ -19,13 +20,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SessionContextProvider> {/* Wrap the entire app with SessionContextProvider */}
+        <SessionContextProvider>
           <Routes>
-            <Route path="/login" element={<Login />} /> {/* Public login route */}
-            <Route path="/" element={<MainLayout />}> {/* Protected routes inside MainLayout */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="workouts" element={<WorkoutsPage />} />
               <Route path="workout-templates" element={<WorkoutTemplatesPage />} />
+              <Route path="profile" element={<ProfilePage />} /> {/* Add the profile route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Route>

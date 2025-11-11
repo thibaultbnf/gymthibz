@@ -32,3 +32,14 @@ export interface WorkoutTemplate {
   description?: string;
   exercises: TemplateExercise[];
 }
+
+export interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  goal: string | null;
+  updated_at: string | null;
+}
