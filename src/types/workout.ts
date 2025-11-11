@@ -41,6 +41,7 @@ export interface Profile {
   height_cm: number | null;
   weight_kg: number | null;
   goal: string | null;
+  training_days_per_week: number | null; // New field
   updated_at: string | null;
 }
 
