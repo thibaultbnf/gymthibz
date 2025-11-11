@@ -84,7 +84,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             targetSets: ex.targetSets.map(set => ({
               ...set,
               targetWeighted_kg: set.targetWeighted_kg || 0,
-            })) || [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
+            })),
           })),
           focus_area: initialData.focus_area || undefined,
         }
