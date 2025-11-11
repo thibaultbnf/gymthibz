@@ -126,10 +126,14 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
     }
 
     const calculatedWorkingWeight = calculateWorkingWeight(estimated1RM, targetPercentage);
+    
+    const selectedExercise = exercises.find(ex => ex.id === values.exercise_id);
+    const isBodyweightExercise = selectedExercise?.type === 'bodyweight';
+
     const generatedSets: ExerciseSet[] = Array.from({ length: numSets }).map((_, index) => ({
       reps: parsedReps[index % parsedReps.length], // Cycle through reps scheme if numSets > parsedReps.length
       weight: calculatedWorkingWeight,
-      weighted_kg: null, // Default to null, user can adjust if bodyweight
+      weighted_kg: isBodyweightExercise ? 0 : null, // Initialize to 0 for bodyweight, null otherwise
     }));
 
     onApplySets(generatedSets);
