@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// Removed FormLabel import as it's no longer needed
 import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
 import { Loader2, Save } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
@@ -46,7 +45,7 @@ const WorkoutSchedulePage: React.FC = () => {
   const handleSelectChange = (dayOfWeek: number, focusArea: string) => {
     setLocalSchedule(prev => ({
       ...prev,
-      [dayOfWeek]: focusArea === "" ? null : focusArea,
+      [dayOfWeek]: focusArea === "none" ? null : focusArea, // Set to null if "none" is selected
     }));
   };
 
@@ -94,14 +93,14 @@ const WorkoutSchedulePage: React.FC = () => {
             <div key={day.value} className="flex items-center justify-between">
               <label className="w-1/3 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{day.label}</label>
               <Select
-                value={localSchedule[day.value] || ""}
+                value={localSchedule[day.value] === null ? "none" : localSchedule[day.value] || ""} // Map null to "none" for Select component
                 onValueChange={(value) => handleSelectChange(day.value, value)}
               >
                 <SelectTrigger className="w-2/3">
                   <SelectValue placeholder="Sélectionner une zone de focus" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Jour de repos</SelectItem>
+                  <SelectItem value="none">Jour de repos</SelectItem> {/* Changed value to "none" */}
                   {focusAreaOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
