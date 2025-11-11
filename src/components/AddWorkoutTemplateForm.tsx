@@ -76,17 +76,20 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? {
-          ...initialData,
+          name: initialData.name,
+          description: initialData.description,
+          focus_area: initialData.focus_area || undefined,
           exercises: initialData.exercises.map(ex => ({
-            ...ex,
+            id: ex.id,
             exercise_id: ex.exercise_id || "",
+            name: ex.name,
             type: ex.type || "",
             targetSets: ex.targetSets.map(set => ({
-              ...set,
+              targetReps: set.targetReps,
+              targetWeight: set.targetWeight,
               targetWeighted_kg: set.targetWeighted_kg || 0,
             })),
           })),
-          focus_area: initialData.focus_area || undefined,
         }
       : {
           name: "",
