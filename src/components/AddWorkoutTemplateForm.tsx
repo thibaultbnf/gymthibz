@@ -74,7 +74,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: (initialData
+    defaultValues: initialData // Removed the outer parentheses
       ? {
           name: initialData.name,
           description: initialData.description ?? "",
@@ -104,7 +104,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
-        })
+        }
   );
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
