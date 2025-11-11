@@ -71,9 +71,11 @@ const ExercisesPage: React.FC = () => {
 
   const onSubmit = async (values: ExerciseDefinitionFormValues) => {
     if (editingExercise) {
-      await updateExerciseDefinition({ ...values, id: editingExercise.id! });
+      // When updating, ensure 'created_at' is preserved from the existing object
+      await updateExerciseDefinition({ ...values, id: editingExercise.id!, created_at: editingExercise.created_at });
     } else {
-      await addExerciseDefinition(values);
+      // When adding, 'created_at' will be set by Supabase, 'id' is optional for the hook
+      await addExerciseDefinition(values as Omit<ExerciseDefinition, "id" | "created_at">);
     }
     form.reset({ name: "", type: "" });
     setShowAddForm(false);
@@ -104,7 +106,7 @@ const ExercisesPage: React.FC = () => {
     return (
       <div className="container mx-auto py-8 text-center text-destructive">
         <h1 className="text-4xl font-bold mb-8">Erreur de chargement</h1>
-        <p className="text-lg">Impossible de charger les exercices : {error.message}</p>
+        <p className="text-lg">Impossible de charger les exercices : {error}</p> {/* FIXED: Display error directly */}
       </div>
     );
   }
