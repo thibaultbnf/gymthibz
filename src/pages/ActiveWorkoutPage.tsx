@@ -30,6 +30,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  useFormContext,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -381,6 +382,14 @@ const ActiveWorkoutPage: React.FC = () => {
               const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
               const isCurrentExercise = exerciseIndex === activeExerciseIndex;
 
+              // Recalculate lastWorkoutSuccessful for display purposes
+              const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`);
+              const exerciseHistory = getExerciseHistory(allWorkouts, currentExerciseName);
+              const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
+              const templateEx = selectedTemplate?.exercises.find(ex => ex.name === currentExerciseName);
+              const lastWorkoutSuccessful = templateEx ? checkLastWorkoutSuccess(exerciseHistory, templateEx.targetSets) : false;
+
+
               return (
                 <Card key={exercise.id} className={cn("p-4", isCurrentExercise ? "border-primary-foreground border-2" : "")}>
                   <div className="flex justify-between items-center mb-4">
@@ -424,6 +433,31 @@ const ActiveWorkoutPage: React.FC = () => {
                       </FormItem>
                     )}
                   />
+
+                  {selectedTemplateId && ( // Only show if a template is selected
+                    <div className="mb-6 p-4 bg-muted rounded-md border border-dashed">
+                      <h4 className="text-lg font-semibold flex items-center mb-2">
+                        <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" /> Suggestion IA
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Dernier entraînement pour cet exercice :{" "}
+                        <span className={lastWorkoutSuccessful ? "text-green-600" : "text-red-600"}>
+                          {lastWorkoutSuccessful ? "Réussi" : "Non réussi"}
+                        </span>
+                      </p>
+                      {form.watch(`exercises.${exerciseIndex}.sets.0`) && (
+                        <p className="text-base font-medium">
+                          Objectif pour la première série :{" "}
+                          <span className="text-primary">
+                            {form.watch(`exercises.${exerciseIndex}.sets.0.reps`)} reps @{" "}
+                            {form.watch(`exercises.${exerciseIndex}.sets.0.weight`)}{" "}kg
+                            {form.watch(`exercises.${exerciseIndex}.sets.0.weighted_kg`) > 0 &&
+                              ` (+${form.watch(`exercises.${exerciseIndex}.sets.0.weighted_kg`)} kg lesté)`}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-4 mt-6">
                     <FormLabel className="text-lg font-medium">Séries</FormLabel>
