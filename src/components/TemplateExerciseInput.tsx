@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { showError } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast"; // Added import
 import { useExercises } from "@/hooks/use-exercises";
 import OneRMCalculatorModal from "@/components/OneRMCalculatorModal";
 import { generateTrainingPlan } from "@/utils/oneRMCalculations";
