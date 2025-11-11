@@ -31,6 +31,7 @@ export interface WorkoutTemplate {
   name: string;
   description?: string;
   exercises: TemplateExercise[];
+  focus_area?: string; // New field for workout focus
 }
 
 export interface Profile {
@@ -41,7 +42,7 @@ export interface Profile {
   height_cm: number | null;
   weight_kg: number | null;
   goal: string | null;
-  training_days_per_week: number | null; // New field
+  training_days_per_week: number | null;
   updated_at: string | null;
 }
 

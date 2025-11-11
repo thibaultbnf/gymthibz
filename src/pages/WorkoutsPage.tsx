@@ -16,22 +16,22 @@ const WorkoutsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams(); // Hook to read/set URL params
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const initialTemplateId = searchParams.get("templateId");
+  const initialFocusArea = searchParams.get("focusArea");
 
   useEffect(() => {
-    if (initialTemplateId) {
+    if (initialFocusArea) {
       setShowAddForm(true);
     }
-  }, [initialTemplateId]);
+  }, [initialFocusArea]);
 
   const handleAddWorkoutClick = () => {
     setShowAddForm(true);
-    setSearchParams({}); // Clear templateId from URL when manually opening form
+    setSearchParams({}); // Clear focusArea from URL when manually opening form
   };
 
   const handleFormSubmitted = () => {
     setShowAddForm(false);
-    setSearchParams({}); // Clear any templateId from URL
+    setSearchParams({}); // Clear any focusArea from URL
   };
 
   const sortedWorkouts = [...workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -50,7 +50,7 @@ const WorkoutsPage = () => {
         <AddWorkoutForm
           onAddWorkout={addWorkout}
           workoutTemplates={workoutTemplates}
-          initialTemplateId={initialTemplateId || undefined}
+          initialFocusArea={initialFocusArea || undefined} // Pass initial focus area
           onFormSubmitted={handleFormSubmitted}
         />
       )}

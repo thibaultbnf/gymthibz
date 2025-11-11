@@ -9,8 +9,7 @@ import { WorkoutTemplate } from "@/types/workout";
 export interface ScheduledWorkout {
   id: string;
   day_of_week: number;
-  workout_template_id: string | null;
-  workout_templates?: WorkoutTemplate; // Joined template data
+  focus_area: string | null; // Changed from workout_template_id
 }
 
 export function useWorkoutSchedule() {
@@ -33,13 +32,7 @@ export function useWorkoutSchedule() {
         .select(`
           id,
           day_of_week,
-          workout_template_id,
-          workout_templates (
-            id,
-            name,
-            description,
-            exercises
-          )
+          focus_area
         `)
         .eq("user_id", user.id)
         .order("day_of_week", { ascending: true });
@@ -65,11 +58,9 @@ export function useWorkoutSchedule() {
         { event: '*', schema: 'public', table: 'workout_schedule', filter: `user_id=eq.${user.id}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            // Refetch to get joined data
-            fetchSchedule();
+            setSchedule((prev) => [...prev, payload.new as ScheduledWorkout].sort((a, b) => a.day_of_week - b.day_of_week));
           } else if (payload.eventType === 'UPDATE') {
-            // Refetch to get joined data
-            fetchSchedule();
+            setSchedule((prev) => prev.map((s) => (s.id === payload.old.id ? (payload.new as ScheduledWorkout) : s)));
           } else if (payload.eventType === 'DELETE') {
             setSchedule((prev) => prev.filter((s) => s.id !== payload.old.id));
           }
@@ -82,7 +73,7 @@ export function useWorkoutSchedule() {
     };
   }, [user, sessionLoading]);
 
-  const upsertScheduleEntry = async (dayOfWeek: number, workoutTemplateId: string | null) => {
+  const upsertScheduleEntry = async (dayOfWeek: number, focusArea: string | null) => {
     if (!user) {
       showError("Vous devez être connecté pour modifier le programme.");
       return;
@@ -94,7 +85,7 @@ export function useWorkoutSchedule() {
         {
           user_id: user.id,
           day_of_week: dayOfWeek,
-          workout_template_id: workoutTemplateId,
+          focus_area: focusArea,
         },
         { onConflict: 'user_id, day_of_week' } // Conflict on user_id and day_of_week
       );

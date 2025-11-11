@@ -5,12 +5,23 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import AICoachSection from "@/components/AICoachSection";
 import { useSession } from "@/contexts/SessionContext";
 import { useWorkouts } from "@/hooks/use-workouts";
-import { useWorkoutSchedule } from "@/hooks/use-workout-schedule"; // Import useWorkoutSchedule
-import { Dumbbell, CalendarDays, ListChecks, Play } from "lucide-react"; // Import Play icon
-import { Link } from "react-router-dom"; // Import Link for navigation
+import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
+import { Dumbbell, CalendarDays, ListChecks, Play } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+
+const focusAreaLabels: { [key: string]: string } = {
+  "back": "Dos",
+  "chest": "Pectoraux",
+  "shoulders": "Épaules",
+  "legs": "Jambes",
+  "arms": "Bras",
+  "full_body": "Full Body",
+  "cardio": "Cardio",
+  "other": "Autre",
+};
 
 const Dashboard = () => {
   const { user } = useSession();
@@ -27,11 +38,11 @@ const Dashboard = () => {
   
   const totalExercisesLogged = workouts.reduce((acc, workout) => acc + workout.exercises.length, 0);
 
-  // Determine today's workout
+  // Determine today's workout focus
   const today = new Date();
   const currentDayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, ..., 6 for Saturday
   const todaysScheduledWorkout = schedule.find(s => s.day_of_week === currentDayOfWeek);
-  const todaysTemplate = todaysScheduledWorkout?.workout_templates;
+  const todaysFocusArea = todaysScheduledWorkout?.focus_area;
 
   return (
     <div className="container mx-auto py-8">
@@ -57,12 +68,14 @@ const Dashboard = () => {
           <CardContent>
             {scheduleLoading ? (
               <p className="text-muted-foreground">Chargement du programme...</p>
-            ) : todaysTemplate ? (
+            ) : todaysFocusArea ? (
               <>
-                <div className="text-2xl font-bold mb-2">{todaysTemplate.name}</div>
-                <p className="text-sm text-muted-foreground mb-4">{todaysTemplate.description || "Aucune description."}</p>
+                <div className="text-2xl font-bold mb-2">Focus : {focusAreaLabels[todaysFocusArea] || todaysFocusArea}</div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choisissez un modèle d'entraînement pour votre séance de {focusAreaLabels[todaysFocusArea] || todaysFocusArea}.
+                </p>
                 <Button asChild className="w-full">
-                  <Link to={`/workouts?templateId=${todaysTemplate.id}`}>
+                  <Link to={`/workouts?focusArea=${todaysFocusArea}`}>
                     <Play className="h-4 w-4 mr-2" /> Démarrer l'entraînement
                   </Link>
                 </Button>

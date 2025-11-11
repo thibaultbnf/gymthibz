@@ -23,6 +23,17 @@ interface WorkoutTemplateCardProps {
   onDelete: (id: string) => void;
 }
 
+const focusAreaLabels: { [key: string]: string } = {
+  "back": "Dos",
+  "chest": "Pectoraux",
+  "shoulders": "Épaules",
+  "legs": "Jambes",
+  "arms": "Bras",
+  "full_body": "Full Body",
+  "cardio": "Cardio",
+  "other": "Autre",
+};
+
 const WorkoutTemplateCard: React.FC<WorkoutTemplateCardProps> = ({ template, onEdit, onDelete }) => {
   return (
     <Card className="w-full">
@@ -55,6 +66,11 @@ const WorkoutTemplateCard: React.FC<WorkoutTemplateCardProps> = ({ template, onE
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {template.focus_area && (
+          <CardDescription className="text-primary font-semibold">
+            Zone de focus : {focusAreaLabels[template.focus_area] || template.focus_area}
+          </CardDescription>
+        )}
         {template.description && (
           <CardDescription className="mb-4">{template.description}</CardDescription>
         )}

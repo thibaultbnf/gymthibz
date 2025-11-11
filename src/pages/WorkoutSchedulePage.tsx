@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useWorkoutTemplates } from "@/hooks/use-workout-templates";
+import { FormLabel } from "@/components/ui/form"; // Import FormLabel
 import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
 import { Loader2, Save } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
@@ -19,8 +19,18 @@ const daysOfWeek = [
   { value: 0, label: "Dimanche" },
 ];
 
+const focusAreaOptions = [
+  { value: "back", label: "Dos" },
+  { value: "chest", label: "Pectoraux" },
+  { value: "shoulders", label: "Épaules" },
+  { value: "legs", label: "Jambes" },
+  { value: "arms", label: "Bras" },
+  { value: "full_body", label: "Full Body" },
+  { value: "cardio", label: "Cardio" },
+  { value: "other", label: "Autre" },
+];
+
 const WorkoutSchedulePage: React.FC = () => {
-  const { templates, loading: templatesLoading, error: templatesError } = useWorkoutTemplates();
   const { schedule, upsertScheduleEntry, loading: scheduleLoading, error: scheduleError } = useWorkoutSchedule();
   const [localSchedule, setLocalSchedule] = useState<{ [key: number]: string | null }>({});
 
@@ -28,15 +38,15 @@ const WorkoutSchedulePage: React.FC = () => {
     const initialSchedule: { [key: number]: string | null } = {};
     daysOfWeek.forEach(day => {
       const entry = schedule.find(s => s.day_of_week === day.value);
-      initialSchedule[day.value] = entry?.workout_template_id || null;
+      initialSchedule[day.value] = entry?.focus_area || null;
     });
     setLocalSchedule(initialSchedule);
   }, [schedule]);
 
-  const handleSelectChange = (dayOfWeek: number, templateId: string) => {
+  const handleSelectChange = (dayOfWeek: number, focusArea: string) => {
     setLocalSchedule(prev => ({
       ...prev,
-      [dayOfWeek]: templateId === "" ? null : templateId,
+      [dayOfWeek]: focusArea === "" ? null : focusArea,
     }));
   };
 
@@ -51,7 +61,7 @@ const WorkoutSchedulePage: React.FC = () => {
     }
   };
 
-  if (templatesLoading || scheduleLoading) {
+  if (scheduleLoading) {
     return (
       <div className="container mx-auto py-8 flex justify-center items-center h-[calc(100vh-150px)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -60,12 +70,12 @@ const WorkoutSchedulePage: React.FC = () => {
     );
   }
 
-  if (templatesError || scheduleError) {
+  if (scheduleError) {
     return (
       <div className="container mx-auto py-8 text-center text-destructive">
         <h1 className="text-4xl font-bold mb-8">Erreur de chargement</h1>
         <p className="text-lg">
-          Impossible de charger les données : {templatesError?.message || scheduleError?.message}
+          Impossible de charger les données : {scheduleError?.message}
         </p>
       </div>
     );
@@ -88,13 +98,13 @@ const WorkoutSchedulePage: React.FC = () => {
                 onValueChange={(value) => handleSelectChange(day.value, value)}
               >
                 <SelectTrigger className="w-2/3">
-                  <SelectValue placeholder="Sélectionner un modèle" />
+                  <SelectValue placeholder="Sélectionner une zone de focus" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Jour de repos</SelectItem>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
+                  {focusAreaOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

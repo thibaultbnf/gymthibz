@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, PlusCircle, Trash2, Lightbulb } from "lucide-react"; // Added Lightbulb icon
+import { CalendarIcon, PlusCircle, Trash2, Lightbulb } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Workout, WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
-import { useWorkouts } from "@/hooks/use-workouts"; // Import useWorkouts to get full history
-import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import new utility functions
+import { useWorkouts } from "@/hooks/use-workouts";
+import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
 
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
@@ -43,7 +43,7 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Une date d'entraînement est requise.",
   }),
-  templateId: z.string().optional(), // Added for template selection
+  templateId: z.string().optional(),
   exercises: z.array(exerciseSchema).min(1, "Au moins un exercice est requis"),
 });
 
@@ -52,22 +52,22 @@ type WorkoutFormValues = z.infer<typeof formSchema>;
 interface AddWorkoutFormProps {
   onAddWorkout: (workout: Workout) => void;
   workoutTemplates: WorkoutTemplate[];
-  initialTemplateId?: string; // New prop for initial template selection
-  onFormSubmitted?: () => void; // Callback to hide form after submission
+  initialFocusArea?: string; // New prop for initial focus area
+  onFormSubmitted?: () => void;
 }
 
 const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
   onAddWorkout,
   workoutTemplates,
-  initialTemplateId,
+  initialFocusArea,
   onFormSubmitted,
 }) => {
-  const { workouts: allWorkouts } = useWorkouts(); // Get all historical workouts
+  const { workouts: allWorkouts } = useWorkouts();
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      templateId: initialTemplateId || "", // Use initialTemplateId if provided
+      templateId: "",
       exercises: [
         {
           id: crypto.randomUUID(),
@@ -85,15 +85,25 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
 
   const selectedTemplateId = form.watch("templateId");
 
+  const filteredTemplates = initialFocusArea
+    ? workoutTemplates.filter(t => t.focus_area === initialFocusArea)
+    : workoutTemplates;
+
   React.useEffect(() => {
-    // Only apply template if it's explicitly selected or provided initially
+    // If an initialFocusArea is provided, try to pre-select the first matching template
+    if (initialFocusArea && filteredTemplates.length > 0 && !selectedTemplateId) {
+      form.setValue("templateId", filteredTemplates[0].id);
+    }
+  }, [initialFocusArea, filteredTemplates, form, selectedTemplateId]);
+
+  React.useEffect(() => {
     if (selectedTemplateId) {
       const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
       if (selectedTemplate) {
         const exercisesFromTemplate = selectedTemplate.exercises.map(templateEx => {
           const exerciseHistory = getExerciseHistory(allWorkouts, templateEx.name);
           return {
-            id: crypto.randomUUID(), // Generate new ID for the workout exercise
+            id: crypto.randomUUID(),
             name: templateEx.name,
             sets: templateEx.targetSets.map(targetSet => {
               const suggestion = getSmartSetSuggestion(exerciseHistory, targetSet);
@@ -106,8 +116,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         });
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else if (!initialTemplateId) { // Only reset if no initial template and none selected
-      // If no template selected, reset to a single empty exercise
+    } else if (!initialFocusArea) { // Only reset if no initial focus area and no template selected
       form.setValue("exercises", [
         {
           id: crypto.randomUUID(),
@@ -116,7 +125,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         },
       ]);
     }
-  }, [selectedTemplateId, workoutTemplates, form, initialTemplateId, allWorkouts]);
+  }, [selectedTemplateId, workoutTemplates, form, initialFocusArea, allWorkouts]);
 
 
   const onSubmit = (values: WorkoutFormValues) => {
@@ -209,9 +218,9 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="">Aucun modèle</SelectItem>
-                      {workoutTemplates.map((template) => (
+                      {filteredTemplates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
-                          {template.name}
+                          {template.name} {template.focus_area ? `(${focusAreaLabels[template.focus_area] || template.focus_area})` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
