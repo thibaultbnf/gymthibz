@@ -22,6 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useExercises } from "@/hooks/use-exercises";
+import { useWorkouts } from "@/hooks/use-workouts"; // Import useWorkouts
+import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import suggestion utilities
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
@@ -33,7 +35,7 @@ const templateExerciseSchema = z.object({
   id: z.string().uuid().optional(),
   exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"),
   name: z.string().min(1, "Nom de l'exercice requis"),
-  type: z.string().min(1, "Type d'exercice requis"), // ADDED: Type field
+  type: z.string().min(1, "Type d'exercice requis"),
   targetSets: z.array(templateExerciseSetSchema).min(1, "Au moins une série cible est requise"),
 });
 
@@ -71,6 +73,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   onCancel,
 }) => {
   const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises();
+  const { workouts: allWorkouts } = useWorkouts(); // Get all workouts for history
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
@@ -83,7 +86,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             id: ex.id,
             exercise_id: ex.exercise_id,
             name: ex.name,
-            type: ex.type, // ADDED: Ensure type is set from initialData
+            type: ex.type,
             targetSets: ex.targetSets.map(set => ({
               targetReps: set.targetReps,
               targetWeight: set.targetWeight,
@@ -100,12 +103,12 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               id: crypto.randomUUID(),
               exercise_id: "",
               name: "",
-              type: "", // ADDED: Initialize type
+              type: "",
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
         },
-  }); // FIXED: Removed extra parenthesis here
+  });
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
@@ -117,20 +120,29 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     if (selectedExercise) {
       form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
-      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // ADDED: Set type
+      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type);
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
 
-      // Reset targetWeighted_kg if the new exercise type is not 'bodyweight'
+      // Fetch history for the selected exercise
+      const exerciseHistory = getExerciseHistory(allWorkouts, selectedExercise.name);
+
+      // Apply smart suggestions to existing target sets or default new ones
+      const currentTargetSets = form.getValues(`exercises.${exerciseIndex}.targetSets`);
+      const updatedTargetSets = currentTargetSets.map(set => {
+        const suggestion = getSmartSetSuggestion(exerciseHistory, set);
+        return {
+          targetReps: suggestion.reps,
+          targetWeight: suggestion.weight,
+          targetWeighted_kg: selectedExercise.type === 'bodyweight' ? (suggestion.weighted_kg || 0) : 0,
+        };
+      });
+      form.setValue(`exercises.${exerciseIndex}.targetSets`, updatedTargetSets);
+
+      // If the exercise type is not 'bodyweight', ensure targetWeighted_kg is 0
       if (selectedExercise.type !== 'bodyweight') {
         form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
           ...set,
-          targetWeighted_kg: 0, // Explicitly set to 0
-        })));
-      } else {
-        // If it is bodyweight, ensure it's not null if it was previously
-        form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
-          ...set,
-          targetWeighted_kg: set.targetWeighted_kg === null ? 0 : set.targetWeighted_kg,
+          targetWeighted_kg: 0,
         })));
       }
     }
@@ -155,11 +167,11 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       name: values.name,
       description: values.description,
       focus_area: values.focus_area || null,
-      exercises: values.exercises.map(ex => ({ // FIXED: Ensure all required fields are present
+      exercises: values.exercises.map(ex => ({
         id: ex.id || crypto.randomUUID(),
         exercise_id: ex.exercise_id,
         name: ex.name,
-        type: ex.type, // ADDED: Ensure type is explicitly set
+        type: ex.type,
         targetSets: ex.targetSets.map(set => ({
           targetReps: set.targetReps,
           targetWeight: set.targetWeight,
@@ -214,7 +226,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           <CardTitle>Erreur de chargement des exercices</CardTitle>
         </CardHeader>
         <CardContent className="text-destructive">
-          Impossible de charger la liste des exercices : {exercisesError} {/* FIXED: Display error directly */}
+          Impossible de charger la liste des exercices : {exercisesError}
         </CardContent>
       </Card>
     );
@@ -413,7 +425,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                   id: crypto.randomUUID(),
                   exercise_id: "",
                   name: "",
-                  type: "", // ADDED: Initialize type
+                  type: "",
                   targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
                 })
               }
