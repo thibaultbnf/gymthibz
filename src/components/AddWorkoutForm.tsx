@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Lightbulb } from "lucide-react"; // Added Lightbulb icon
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Workout, WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
+import { useWorkouts } from "@/hooks/use-workouts"; // Import useWorkouts to get full history
+import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import new utility functions
 
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
@@ -60,6 +62,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
   initialTemplateId,
   onFormSubmitted,
 }) => {
+  const { workouts: allWorkouts } = useWorkouts(); // Get all historical workouts
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,14 +90,20 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     if (selectedTemplateId) {
       const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
       if (selectedTemplate) {
-        const exercisesFromTemplate = selectedTemplate.exercises.map(templateEx => ({
-          id: crypto.randomUUID(), // Generate new ID for the workout exercise
-          name: templateEx.name,
-          sets: templateEx.targetSets.map(targetSet => ({
-            reps: targetSet.targetReps,
-            weight: targetSet.targetWeight,
-          })),
-        }));
+        const exercisesFromTemplate = selectedTemplate.exercises.map(templateEx => {
+          const exerciseHistory = getExerciseHistory(allWorkouts, templateEx.name);
+          return {
+            id: crypto.randomUUID(), // Generate new ID for the workout exercise
+            name: templateEx.name,
+            sets: templateEx.targetSets.map(targetSet => {
+              const suggestion = getSmartSetSuggestion(exerciseHistory, targetSet);
+              return {
+                reps: suggestion.reps,
+                weight: suggestion.weight,
+              };
+            }),
+          };
+        });
         form.setValue("exercises", exercisesFromTemplate);
       }
     } else if (!initialTemplateId) { // Only reset if no initial template and none selected
@@ -107,7 +116,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         },
       ]);
     }
-  }, [selectedTemplateId, workoutTemplates, form, initialTemplateId]);
+  }, [selectedTemplateId, workoutTemplates, form, initialTemplateId, allWorkouts]);
 
 
   const onSubmit = (values: WorkoutFormValues) => {
