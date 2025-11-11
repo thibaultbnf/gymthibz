@@ -119,9 +119,20 @@ const ActiveWorkoutPage: React.FC = () => {
 
   const selectedTemplateId = form.watch("templateId");
 
+  // Log initialFocusArea and raw workoutTemplates
+  useEffect(() => {
+    console.log("ActiveWorkoutPage - initialFocusArea:", initialFocusArea);
+    console.log("ActiveWorkoutPage - Raw workoutTemplates:", workoutTemplates);
+  }, [initialFocusArea, workoutTemplates]);
+
   const filteredTemplates = initialFocusArea
     ? workoutTemplates.filter(t => t.focus_area && initialFocusArea.split(',').includes(t.focus_area))
     : workoutTemplates;
+
+  // Log filteredTemplates
+  useEffect(() => {
+    console.log("ActiveWorkoutPage - Filtered workoutTemplates:", filteredTemplates);
+  }, [filteredTemplates]);
 
   // Effect to set initial template based on focus area or first available
   useEffect(() => {
