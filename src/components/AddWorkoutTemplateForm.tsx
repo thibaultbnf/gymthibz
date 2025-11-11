@@ -4,7 +4,7 @@ import React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, Trash2, Loader2, Calculator } from "lucide-react"; // Import Calculator icon
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WorkoutTemplate } from "@/types/workout";
+import { WorkoutTemplate, ExerciseSet, TemplateExerciseSet } from "@/types/workout"; // Import ExerciseSet
 import { showSuccess, showError } from "@/utils/toast";
 import { useExercises } from "@/hooks/use-exercises";
-import { useWorkouts } from "@/hooks/use-workouts"; // Import useWorkouts
-import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations"; // Import suggestion utilities
+import { useWorkouts } from "@/hooks/use-workouts";
+import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
+import { OneRMCalculatorModal } from "@/components/OneRMCalculatorModal"; // Import the OneRMCalculatorModal
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
@@ -110,7 +111,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
         },
   });
 
-  const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+  const { fields: exerciseFields, append: appendExercise, remove: removeExercise, update: updateExercise } = useFieldArray({
     control: form.control,
     name: "exercises",
   });
@@ -146,6 +147,20 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
         })));
       }
     }
+  };
+
+  const handleApplySetsFrom1RM = (exerciseIndex: number, sets: ExerciseSet[]) => {
+    const currentExercise = form.getValues(`exercises.${exerciseIndex}`);
+    const newTargetSets: TemplateExerciseSet[] = sets.map(set => ({
+      targetReps: set.reps,
+      targetWeight: set.weight,
+      targetWeighted_kg: set.weighted_kg,
+    }));
+    updateExercise(exerciseIndex, {
+      ...currentExercise,
+      targetSets: newTargetSets,
+    });
+    showSuccess("Séries générées et appliquées avec succès au modèle !");
   };
 
   const getWeightLabel = (exerciseType: string, exerciseName: string) => {
@@ -294,6 +309,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             {exerciseFields.map((exercise, exerciseIndex) => {
               const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
               const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`);
+              const currentExerciseId = form.watch(`exercises.${exerciseIndex}.exercise_id`);
+
               return (
                 <Card key={exercise.id} className="p-4">
                   <div className="flex justify-between items-center mb-4">
@@ -334,6 +351,16 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                       </FormItem>
                     )}
                   />
+
+                  {currentExerciseId && ( // Only show 1RM calculator if an exercise is selected
+                    <div className="mb-4">
+                      <OneRMCalculatorModal
+                        onApplySets={(sets) => handleApplySetsFrom1RM(exerciseIndex, sets)}
+                        triggerButtonText="Générer les séries avec le calculateur 1RM"
+                        initialExerciseId={currentExerciseId}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     <FormLabel>Séries cibles</FormLabel>
