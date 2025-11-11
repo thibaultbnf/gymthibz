@@ -74,7 +74,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: (initialData // Wrap the ternary operator in parentheses
+    defaultValues: (initialData
       ? {
           name: initialData.name,
           description: initialData.description ?? "",
@@ -183,6 +183,14 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     }
   };
 
+  const handleRemoveExercise = (index: number) => {
+    if (exerciseFields.length === 1) {
+      showError("Un modèle d'entraînement doit contenir au moins un exercice.");
+      return;
+    }
+    removeExercise(index);
+  };
+
   if (exercisesLoading) {
     return (
       <Card className="mb-8">
@@ -279,7 +287,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => removeExercise(exerciseIndex)}
+                      onClick={() => handleRemoveExercise(exerciseIndex)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" /> Supprimer l'exercice
                     </Button>
