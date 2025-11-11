@@ -161,14 +161,25 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
       form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // ADDED: Set type
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
+    } else {
+      // If selectedExercise is not found, reset related fields to default empty strings
+      form.setValue(`exercises.${exerciseIndex}.exercise_id`, "");
+      form.setValue(`exercises.${exerciseIndex}.name`, "");
+      form.setValue(`exercises.${exerciseIndex}.type`, "");
     }
   };
 
   const handleApplySetsFrom1RM = (exerciseIndex: number, sets: ExerciseSet[]) => {
     const currentExercise = form.getValues(`exercises.${exerciseIndex}`);
+    const selectedExerciseDefinition = exercises.find(ex => ex.id === currentExercise.exercise_id);
+    const isBodyweightExercise = selectedExerciseDefinition?.type === 'bodyweight';
+
     updateExercise(exerciseIndex, {
       ...currentExercise,
-      sets: sets,
+      sets: sets.map(set => ({
+        ...set,
+        weighted_kg: isBodyweightExercise ? (set.weighted_kg || 0) : null,
+      })),
     });
     showSuccess("Séries générées et appliquées avec succès !");
   };
@@ -312,7 +323,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
             />
 
             {exerciseFields.map((exercise, exerciseIndex) => {
-              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
+              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`) || ""; // Ensure it's always a string
               return (
                 <Card key={exercise.id} className="p-4">
                   <div className="flex justify-between items-center mb-4">

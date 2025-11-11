@@ -151,13 +151,18 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
         form.setValue(`exercises.${exerciseIndex}.targetSets`, updatedTargetSets);
 
         // If the exercise type is not 'bodyweight', ensure targetWeighted_kg is 0
-        if (selectedExercise.type !== 'bodyweight') {
+        if (selectedExercise.type !== 'bodyweight') { // <--- HERE
           form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
             ...set,
             targetWeighted_kg: null, // Ensure it's null for non-bodyweight
           })));
         }
       }
+    } else {
+      // If selectedExercise is not found, reset related fields to default empty strings
+      form.setValue(`exercises.${exerciseIndex}.exercise_id`, "");
+      form.setValue(`exercises.${exerciseIndex}.name`, "");
+      form.setValue(`exercises.${exerciseIndex}.type`, "");
     }
   };
 
@@ -323,8 +328,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             />
 
             {exerciseFields.map((exercise, exerciseIndex) => {
-              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
-              const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`);
+              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`) || ""; // Ensure it's always a string
+              const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`) || ""; // Ensure it's always a string
               const currentExerciseId = form.watch(`exercises.${exerciseIndex}.exercise_id`);
 
               return (
