@@ -76,20 +76,17 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? {
-          name: initialData.name,
-          description: initialData.description ?? "",
-          focus_area: initialData.focus_area ?? undefined,
+          ...initialData,
           exercises: initialData.exercises.map(ex => ({
-            id: ex.id,
-            exercise_id: ex.exercise_id,
-            name: ex.name,
-            type: ex.type,
+            ...ex,
+            exercise_id: ex.exercise_id || "",
+            type: ex.type || "",
             targetSets: ex.targetSets.map(set => ({
-              targetReps: set.targetReps,
-              targetWeight: set.targetWeight,
-              targetWeighted_kg: set.targetWeighted_kg ?? 0,
-            })),
+              ...set,
+              targetWeighted_kg: set.targetWeighted_kg || 0,
+            })) || [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
           })),
+          focus_area: initialData.focus_area || undefined,
         }
       : {
           name: "",
@@ -104,8 +101,8 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
-        },
-  });
+        }
+  );
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
@@ -183,14 +180,6 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     }
   };
 
-  const handleRemoveExercise = (index: number) => {
-    if (exerciseFields.length === 1) {
-      showError("Un modèle d'entraînement doit contenir au moins un exercice.");
-      return;
-    }
-    removeExercise(index);
-  };
-
   if (exercisesLoading) {
     return (
       <Card className="mb-8">
@@ -211,7 +200,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           <CardTitle>Erreur de chargement des exercices</CardTitle>
         </CardHeader>
         <CardContent className="text-destructive">
-          Impossible de charger la liste des exercices : {exercisesError}
+          Impossible de charger la liste des exercices : {exercisesError.message}
         </CardContent>
       </Card>
     );
@@ -287,7 +276,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleRemoveExercise(exerciseIndex)}
+                      onClick={() => removeExercise(exerciseIndex)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" /> Supprimer l'exercice
                     </Button>

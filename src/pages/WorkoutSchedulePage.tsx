@@ -102,7 +102,7 @@ const WorkoutSchedulePage: React.FC = () => {
       <div className="container mx-auto py-8 text-center text-destructive">
         <h1 className="text-4xl font-bold mb-8">Erreur de chargement</h1>
         <p className="text-lg">
-          Impossible de charger les données : {scheduleError}
+          Impossible de charger les données : {scheduleError?.message}
         </p>
       </div>
     );
