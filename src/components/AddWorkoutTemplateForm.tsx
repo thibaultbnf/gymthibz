@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -36,7 +36,7 @@ const templateExerciseSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(1, "Nom du modèle requis"),
   description: z.string().optional(),
-  focus_area: z.string().optional(), // New field for focus area
+  focus_area: z.string().optional(),
   exercises: z.array(templateExerciseSchema).min(1, "Au moins un exercice est requis"),
 });
 
@@ -73,14 +73,14 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           ...initialData,
           exercises: initialData.exercises.map(ex => ({
             ...ex,
-            targetSets: ex.targetSets || [{ targetReps: 0, targetWeight: 0 }], // Ensure targetSets exist
+            targetSets: ex.targetSets || [{ targetReps: 0, targetWeight: 0 }],
           })),
-          focus_area: initialData.focus_area || "", // Set default for focus_area
+          focus_area: initialData.focus_area || undefined, // Use undefined for no selection
         }
       : {
           name: "",
           description: "",
-          focus_area: "", // Default empty
+          focus_area: undefined, // Default undefined
           exercises: [
             {
               id: crypto.randomUUID(),
@@ -101,7 +101,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       id: initialData?.id || crypto.randomUUID(),
       name: values.name,
       description: values.description,
-      focus_area: values.focus_area || null, // Save focus area
+      focus_area: values.focus_area || null,
       exercises: values.exercises.map(ex => ({
         ...ex,
         id: ex.id || crypto.randomUUID(),
@@ -159,14 +159,13 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Zone de focus (optionnel)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner une zone de focus" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Aucune</SelectItem>
                       {focusAreaOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}

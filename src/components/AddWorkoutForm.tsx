@@ -52,7 +52,7 @@ type WorkoutFormValues = z.infer<typeof formSchema>;
 interface AddWorkoutFormProps {
   onAddWorkout: (workout: Workout) => void;
   workoutTemplates: WorkoutTemplate[];
-  initialFocusArea?: string; // Now can be a comma-separated string
+  initialFocusArea?: string;
   onFormSubmitted?: () => void;
 }
 
@@ -78,7 +78,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      templateId: "",
+      templateId: undefined, // Use undefined for no selection
       exercises: [
         {
           id: crypto.randomUUID(),
@@ -103,7 +103,6 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     : workoutTemplates;
 
   React.useEffect(() => {
-    // If an initialFocusArea is provided, try to pre-select the first matching template
     if (initialFocusAreasArray.length > 0 && filteredTemplates.length > 0 && !selectedTemplateId) {
       form.setValue("templateId", filteredTemplates[0].id);
     }
@@ -129,7 +128,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         });
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else if (initialFocusAreasArray.length === 0) { // Only reset if no initial focus area and no template selected
+    } else if (initialFocusAreasArray.length === 0) {
       form.setValue("exercises", [
         {
           id: crypto.randomUUID(),
@@ -144,7 +143,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
   const onSubmit = (values: WorkoutFormValues) => {
     const newWorkout: Workout = {
       id: crypto.randomUUID(),
-      date: format(values.date, "yyyy-MM-dd"),
+      date: format(values.date, "yyyy-MM-DD"),
       exercises: values.exercises.map(ex => ({
         ...ex,
         id: ex.id || crypto.randomUUID(),
@@ -153,7 +152,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     onAddWorkout(newWorkout);
     form.reset({
       date: new Date(),
-      templateId: "",
+      templateId: undefined, // Reset to undefined
       exercises: [
         {
           id: crypto.randomUUID(),
@@ -230,7 +229,6 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Aucun modèle</SelectItem>
                       {filteredTemplates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name} {template.focus_area ? `(${focusAreaLabels[template.focus_area] || template.focus_area})` : ''}
