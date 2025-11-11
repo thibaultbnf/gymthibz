@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FormLabel } from "@/components/ui/form"; // Import FormLabel
+// Removed FormLabel import as it's no longer needed
 import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
 import { Loader2, Save } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
@@ -92,7 +92,7 @@ const WorkoutSchedulePage: React.FC = () => {
         <CardContent className="space-y-6">
           {daysOfWeek.map((day) => (
             <div key={day.value} className="flex items-center justify-between">
-              <FormLabel className="w-1/3">{day.label}</FormLabel>
+              <label className="w-1/3 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{day.label}</label>
               <Select
                 value={localSchedule[day.value] || ""}
                 onValueChange={(value) => handleSelectChange(day.value, value)}
