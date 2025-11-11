@@ -14,7 +14,8 @@ import ProgressPage from "./pages/ProgressPage";
 import WorkoutSchedulePage from "./pages/WorkoutSchedulePage";
 import BodyMeasurementsPage from "./pages/BodyMeasurementsPage";
 import FoodLogPage from "./pages/FoodLogPage";
-import SetupGoalsAndSchedulePage from "./pages/SetupGoalsAndSchedulePage"; // Import the new page
+import SetupGoalsAndSchedulePage from "./pages/SetupGoalsAndSchedulePage";
+import ExercisesPage from "./pages/ExercisesPage"; // Import the new page
 import { SessionContextProvider } from "./contexts/SessionContext";
 
 const queryClient = new QueryClient();
@@ -37,7 +38,8 @@ const App = () => (
               <Route path="measurements" element={<BodyMeasurementsPage />} />
               <Route path="food-log" element={<FoodLogPage />} />
               <Route path="profile" element={<ProfilePage />} />
-              <Route path="setup-goals-schedule" element={<SetupGoalsAndSchedulePage />} /> {/* Add the new route */}
+              <Route path="setup-goals-schedule" element={<SetupGoalsAndSchedulePage />} />
+              <Route path="exercises" element={<ExercisesPage />} /> {/* Add the new route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Route>
