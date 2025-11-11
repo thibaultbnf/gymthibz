@@ -5,14 +5,9 @@ export interface ExerciseSet {
 
 export interface Exercise {
   id: string; // Unique ID for each exercise within a workout
-  name: string;
+  exercise_id: string; // Reference to the master exercise definition
+  name: string; // Denormalized name for easier display
   sets: ExerciseSet[];
-}
-
-export interface Workout {
-  id: string; // Unique ID for the workout
-  date: string; // ISO date string (e.g., 'YYYY-MM-DD')
-  exercises: Exercise[];
 }
 
 export interface TemplateExerciseSet {
@@ -22,8 +17,15 @@ export interface TemplateExerciseSet {
 
 export interface TemplateExercise {
   id: string; // Unique ID for each exercise within a template
-  name: string;
+  exercise_id: string; // Reference to the master exercise definition
+  name: string; // Denormalized name for easier display
   targetSets: TemplateExerciseSet[];
+}
+
+export interface Workout {
+  id: string; // Unique ID for the workout
+  date: string; // ISO date string (e.g., 'YYYY-MM-DD')
+  exercises: Exercise[];
 }
 
 export interface WorkoutTemplate {
@@ -78,4 +80,11 @@ export interface ScheduledWorkout {
   id: string;
   day_of_week: number;
   focus_area: string[] | null; // Changed to array of strings
+}
+
+export interface ExerciseDefinition {
+  id: string;
+  name: string;
+  type: string; // 'machine', 'free_weight', 'bodyweight', 'cardio', etc.
+  created_at: string;
 }
