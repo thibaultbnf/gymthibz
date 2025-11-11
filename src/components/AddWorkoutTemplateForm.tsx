@@ -145,13 +145,16 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     try {
       if (initialData && onUpdateTemplate) {
         await onUpdateTemplate(templateToSave);
+        showSuccess("Modèle d'entraînement mis à jour avec succès !");
       } else {
         await onAddTemplate(templateToSave);
+        showSuccess("Modèle d'entraînement ajouté avec succès !");
       }
       form.reset();
       if (onCancel) onCancel();
     } catch (error: any) {
       console.error("Form submission error:", error);
+      showError(`Erreur lors de la soumission du formulaire: ${error.message}`);
     }
   };
 
