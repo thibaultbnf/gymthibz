@@ -188,3 +188,31 @@ export const getSmartSetSuggestion = (
     return { reps: targetReps, weight: finalSuggestedWeight, weighted_kg: finalSuggestedWeighted_kg };
   }
 };
+
+/**
+ * Estimates One-Rep Max (1RM) using the Brzycki formula.
+ * Formula: Weight / (1.0278 - 0.0278 * Reps)
+ * @param weight The weight lifted.
+ * @param reps The number of repetitions performed.
+ * @returns Estimated 1RM.
+ */
+export const estimateOneRepMax = (weight: number, reps: number): number => {
+  if (reps === 0) return 0;
+  if (reps === 1) return weight;
+  // Brzycki formula is generally good for 1-10 reps.
+  // For higher reps, it might overestimate, but it's a common and simple formula.
+  return weight / (1.0278 - 0.0278 * reps);
+};
+
+/**
+ * Calculates a target working weight based on a percentage of 1RM.
+ * @param oneRM The estimated One-Rep Max.
+ * @param percentage The percentage of 1RM to use (e.g., 0.75 for 75%).
+ * @param increment The smallest weight increment available (e.g., 2.5kg for plates).
+ * @returns The calculated working weight, rounded to the nearest increment.
+ */
+export const calculateWorkingWeight = (oneRM: number, percentage: number, increment: number = 2.5): number => {
+  const rawWeight = oneRM * percentage;
+  // Round to the nearest increment (e.g., 2.5kg)
+  return Math.round(rawWeight / increment) * increment;
+};
