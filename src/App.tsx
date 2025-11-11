@@ -7,7 +7,9 @@ import MainLayout from "./components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import WorkoutsPage from "./pages/WorkoutsPage";
-import WorkoutTemplatesPage from "./pages/WorkoutTemplatesPage"; // New import
+import WorkoutTemplatesPage from "./pages/WorkoutTemplatesPage";
+import Login from "./pages/Login"; // Import the Login page
+import { SessionContextProvider } from "./contexts/SessionContext"; // Import the SessionContextProvider
 
 const queryClient = new QueryClient();
 
@@ -17,15 +19,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <MainLayout>
+        <SessionContextProvider> {/* Wrap the entire app with SessionContextProvider */}
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/workouts" element={<WorkoutsPage />} />
-            <Route path="/workout-templates" element={<WorkoutTemplatesPage />} /> {/* New route */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="/login" element={<Login />} /> {/* Public login route */}
+            <Route path="/" element={<MainLayout />}> {/* Protected routes inside MainLayout */}
+              <Route index element={<Dashboard />} />
+              <Route path="workouts" element={<WorkoutsPage />} />
+              <Route path="workout-templates" element={<WorkoutTemplatesPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Routes>
-        </MainLayout>
+        </SessionContextProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
