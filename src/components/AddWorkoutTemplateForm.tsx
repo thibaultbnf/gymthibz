@@ -101,7 +101,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
-        },
+        }
   );
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
