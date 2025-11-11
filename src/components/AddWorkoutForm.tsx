@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, PlusCircle, Trash2, Lightbulb, Loader2 } from "lucide-react"; // Added Loader2 icon
+import { CalendarIcon, PlusCircle, Trash2, Lightbulb, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,20 +26,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Workout, WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useWorkouts } from "@/hooks/use-workouts";
-import { useExercises } from "@/hooks/use-exercises"; // Import the new hook
+import { useExercises } from "@/hooks/use-exercises";
 import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalculations";
 
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
   weight: z.coerce.number().min(0, "Poids requis"),
-  weighted_kg: z.coerce.number().min(0, "Poids lesté requis").optional().or(z.literal(0)), // New field
+  weighted_kg: z.coerce.number().min(0, "Poids lesté requis").optional().or(z.literal(0)),
 });
 
 const exerciseSchema = z.object({
   id: z.string().uuid().optional(),
-  exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"), // New field for exercise ID
-  name: z.string().min(1, "Nom de l'exercice requis"), // Still needed for display
-  type: z.string().min(1, "Type d'exercice requis"), // New field for exercise type
+  exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"),
+  name: z.string().min(1, "Nom de l'exercice requis"),
+  type: z.string().min(1, "Type d'exercice requis"),
   sets: z.array(exerciseSetSchema).min(1, "Au moins une série est requise"),
 });
 
@@ -78,20 +78,20 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
   onFormSubmitted,
 }) => {
   const { workouts: allWorkouts } = useWorkouts();
-  const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises(); // Use the new hook
+  const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises();
 
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      templateId: undefined, // Use undefined for no selection
+      templateId: undefined,
       exercises: [
         {
           id: crypto.randomUUID(),
-          exercise_id: "", // Initialize with empty string
+          exercise_id: "",
           name: "",
-          type: "", // Initialize with empty string
-          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
+          type: "",
+          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }],
         },
       ],
     },
@@ -110,7 +110,6 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     ? workoutTemplates.filter(t => t.focus_area && initialFocusAreasArray.includes(t.focus_area))
     : workoutTemplates;
 
-  // Effect to populate exercises when a template is selected
   React.useEffect(() => {
     if (selectedTemplateId) {
       const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
@@ -119,15 +118,15 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           const exerciseHistory = getExerciseHistory(allWorkouts, templateEx.name);
           return {
             id: crypto.randomUUID(),
-            exercise_id: templateEx.exercise_id, // Use exercise_id from template
+            exercise_id: templateEx.exercise_id,
             name: templateEx.name,
-            type: templateEx.type, // Use type from template
+            type: templateEx.type,
             sets: templateEx.targetSets.map(targetSet => {
               const suggestion = getSmartSetSuggestion(exerciseHistory, templateEx.type, templateEx.name, targetSet);
               return {
                 reps: suggestion.reps,
                 weight: suggestion.weight,
-                weighted_kg: suggestion.weighted_kg || 0, // Use suggested weighted_kg
+                weighted_kg: suggestion.weighted_kg || 0,
               };
             }),
           };
@@ -135,8 +134,6 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         form.setValue("exercises", exercisesFromTemplate);
       }
     } else {
-      // If no template is selected, ensure there's at least one empty exercise row.
-      // Only reset if there are no exercises or if the existing exercises are from a previous template selection.
       const currentExercises = form.getValues("exercises");
       if (currentExercises.length === 0 || currentExercises[0].exercise_id !== "") {
         form.setValue("exercises", [
@@ -157,8 +154,16 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     if (selectedExercise) {
       form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
-      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // Set the type
-      form.clearErrors(`exercises.${exerciseIndex}.exercise_id`); // Clear error after selection
+      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type);
+      form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
+
+      // Reset weighted_kg if the new exercise type is not 'bodyweight'
+      if (selectedExercise.type !== 'bodyweight') {
+        form.setValue(`exercises.${exerciseIndex}.sets`, form.getValues(`exercises.${exerciseIndex}.sets`).map(set => ({
+          ...set,
+          weighted_kg: 0,
+        })));
+      }
     }
   };
 
@@ -178,21 +183,21 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         id: ex.id || crypto.randomUUID(),
         sets: ex.sets.map(set => ({
           ...set,
-          weighted_kg: set.weighted_kg && set.weighted_kg > 0 ? set.weighted_kg : null, // Store null if 0
+          weighted_kg: ex.type === 'bodyweight' && set.weighted_kg && set.weighted_kg > 0 ? set.weighted_kg : null,
         })),
       })),
     };
     onAddWorkout(newWorkout);
     form.reset({
       date: new Date(),
-      templateId: undefined, // Reset to undefined
+      templateId: undefined,
       exercises: [
         {
           id: crypto.randomUUID(),
-          exercise_id: "", // Initialize with empty string
+          exercise_id: "",
           name: "",
-          type: "", // Initialize with empty string
-          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
+          type: "",
+          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }],
         },
       ],
     });
@@ -320,7 +325,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                   </div>
                   <FormField
                     control={form.control}
-                    name={`exercises.${exerciseIndex}.exercise_id`} // Bind to exercise_id
+                    name={`exercises.${exerciseIndex}.exercise_id`}
                     render={({ field }) => (
                       <FormItem className="mb-4">
                         <FormLabel>Nom de l'exercice</FormLabel>
@@ -376,19 +381,21 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name={`exercises.${exerciseIndex}.sets.${setIndex}.weighted_kg`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel>Poids lesté (kg)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.5" placeholder="0" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {currentExerciseType === 'bodyweight' && (
+                          <FormField
+                            control={form.control}
+                            name={`exercises.${exerciseIndex}.sets.${setIndex}.weighted_kg`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Poids lesté (kg)</FormLabel>
+                                <FormControl>
+                                  <Input type="number" step="0.5" placeholder="0" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         <Button
                           type="button"
                           variant="outline"
@@ -432,9 +439,9 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
               onClick={() =>
                 appendExercise({
                   id: crypto.randomUUID(),
-                  exercise_id: "", // Initialize with empty string
+                  exercise_id: "",
                   name: "",
-                  type: "", // Initialize with empty string
+                  type: "",
                   sets: [{ reps: 0, weight: 0, weighted_kg: 0 }],
                 })
               }

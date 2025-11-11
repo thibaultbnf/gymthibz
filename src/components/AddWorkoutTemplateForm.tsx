@@ -4,7 +4,7 @@ import React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Trash2, Loader2 } from "lucide-react"; // Added Loader2 icon
+import { PlusCircle, Trash2, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,19 +21,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
-import { useExercises } from "@/hooks/use-exercises"; // Import the new hook
+import { useExercises } from "@/hooks/use-exercises";
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
   targetWeight: z.coerce.number().min(0, "Poids cible requis"),
-  targetWeighted_kg: z.coerce.number().min(0, "Poids lesté cible requis").optional().or(z.literal(0)), // New field
+  targetWeighted_kg: z.coerce.number().min(0, "Poids lesté cible requis").optional().or(z.literal(0)),
 });
 
 const templateExerciseSchema = z.object({
   id: z.string().uuid().optional(),
-  exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"), // New field for exercise ID
-  name: z.string().min(1, "Nom de l'exercice requis"), // Still needed for display
-  type: z.string().min(1, "Type d'exercice requis"), // New field for exercise type
+  exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"),
+  name: z.string().min(1, "Nom de l'exercice requis"),
+  type: z.string().min(1, "Type d'exercice requis"),
   targetSets: z.array(templateExerciseSetSchema).min(1, "Au moins une série cible est requise"),
 });
 
@@ -79,25 +79,25 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           ...initialData,
           exercises: initialData.exercises.map(ex => ({
             ...ex,
-            exercise_id: ex.exercise_id || "", // Ensure exercise_id is present
-            type: ex.type || "", // Ensure type is present
+            exercise_id: ex.exercise_id || "",
+            type: ex.type || "",
             targetSets: ex.targetSets.map(set => ({
               ...set,
-              targetWeighted_kg: set.targetWeighted_kg || 0, // Ensure targetWeighted_kg is present
+              targetWeighted_kg: set.targetWeighted_kg || 0,
             })) || [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
           })),
-          focus_area: initialData.focus_area || undefined, // Use undefined for no selection
+          focus_area: initialData.focus_area || undefined,
         }
       : {
           name: "",
           description: "",
-          focus_area: undefined, // Default undefined
+          focus_area: undefined,
           exercises: [
             {
               id: crypto.randomUUID(),
-              exercise_id: "", // Initialize with empty string
+              exercise_id: "",
               name: "",
-              type: "", // Initialize with empty string
+              type: "",
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
@@ -114,8 +114,16 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     if (selectedExercise) {
       form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
-      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // Set the type
-      form.clearErrors(`exercises.${exerciseIndex}.exercise_id`); // Clear error after selection
+      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type);
+      form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
+
+      // Reset targetWeighted_kg if the new exercise type is not 'bodyweight'
+      if (selectedExercise.type !== 'bodyweight') {
+        form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
+          ...set,
+          targetWeighted_kg: 0,
+        })));
+      }
     }
   };
 
@@ -127,7 +135,6 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   };
 
   const onSubmit = async (values: WorkoutTemplateFormValues) => {
-    // Log form validation errors if any
     if (Object.keys(form.formState.errors).length > 0) {
       console.error("Form validation errors:", form.formState.errors);
       showError("Veuillez corriger les erreurs dans le formulaire.");
@@ -144,12 +151,12 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
         id: ex.id || crypto.randomUUID(),
         targetSets: ex.targetSets.map(set => ({
           ...set,
-          targetWeighted_kg: set.targetWeighted_kg && set.targetWeighted_kg > 0 ? set.targetWeighted_kg : null,
+          targetWeighted_kg: ex.type === 'bodyweight' && set.targetWeighted_kg && set.targetWeighted_kg > 0 ? set.targetWeighted_kg : null,
         })),
       })),
     };
 
-    console.log("Template data being sent to Supabase:", templateToSave); // Log data before sending
+    console.log("Template data being sent to Supabase:", templateToSave);
 
     try {
       if (initialData && onUpdateTemplate) {
@@ -270,7 +277,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                   </div>
                   <FormField
                     control={form.control}
-                    name={`exercises.${exerciseIndex}.exercise_id`} // Bind to exercise_id
+                    name={`exercises.${exerciseIndex}.exercise_id`}
                     render={({ field }) => (
                       <FormItem className="mb-4">
                         <FormLabel>Nom de l'exercice</FormLabel>
@@ -326,19 +333,21 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name={`exercises.${exerciseIndex}.targetSets.${setIndex}.targetWeighted_kg`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel>Poids lesté cible (kg)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.5" placeholder="0" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {currentExerciseType === 'bodyweight' && (
+                          <FormField
+                            control={form.control}
+                            name={`exercises.${exerciseIndex}.targetSets.${setIndex}.targetWeighted_kg`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Poids lesté cible (kg)</FormLabel>
+                                <FormControl>
+                                  <Input type="number" step="0.5" placeholder="0" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         <Button
                           type="button"
                           variant="outline"
@@ -382,9 +391,9 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               onClick={() =>
                 appendExercise({
                   id: crypto.randomUUID(),
-                  exercise_id: "", // Initialize with empty string
+                  exercise_id: "",
                   name: "",
-                  type: "", // Initialize with empty string
+                  type: "",
                   targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
                 })
               }
