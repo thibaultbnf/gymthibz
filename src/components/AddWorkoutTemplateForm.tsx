@@ -102,7 +102,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             },
           ],
         },
-  });
+  );
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
@@ -121,7 +121,13 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       if (selectedExercise.type !== 'bodyweight') {
         form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
           ...set,
-          targetWeighted_kg: 0,
+          targetWeighted_kg: 0, // Explicitly set to 0
+        })));
+      } else {
+        // If it is bodyweight, ensure it's not null if it was previously
+        form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
+          ...set,
+          targetWeighted_kg: set.targetWeighted_kg === null ? 0 : set.targetWeighted_kg,
         })));
       }
     }
