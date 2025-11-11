@@ -55,3 +55,19 @@ export interface BodyMeasurement {
   hips_cm: number | null;
   neck_cm: number | null;
 }
+
+export interface FoodItem {
+  id: string; // Unique ID for each food item within an entry
+  name: string;
+  quantity: string; // e.g., "150g", "1 cup", "1 medium"
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}
+
+export interface FoodEntry {
+  id: string; // Unique ID for the food entry
+  date: string; // ISO date string (e.g., 'YYYY-MM-DD')
+  items: FoodItem[];
+}
