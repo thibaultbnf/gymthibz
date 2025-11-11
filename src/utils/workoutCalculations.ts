@@ -13,7 +13,7 @@ export interface PersonalRecord {
 
 /**
  * Calcule le volume total d'entraînement pour chaque jour.
- * Volume = Somme (répétitions * poids) pour toutes les séries de tous les exercices d'un entraînement.
+ * Volume = Somme (répétitions * (poids + poids_lesté)) pour toutes les séries de tous les exercices d'un entraînement.
  * @param workouts Tableau des entraînements.
  * @returns Tableau d'objets { date, totalVolume } trié par date.
  */
@@ -24,7 +24,8 @@ export const calculateWorkoutVolume = (workouts: Workout[]): WorkoutVolumeData[]
     let dailyVolume = 0;
     workout.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
-        dailyVolume += set.reps * set.weight;
+        const effectiveWeight = set.weight + (set.weighted_kg || 0);
+        dailyVolume += set.reps * effectiveWeight;
       });
     });
 
@@ -44,7 +45,7 @@ export const calculateWorkoutVolume = (workouts: Workout[]): WorkoutVolumeData[]
 };
 
 /**
- * Calcule les records personnels (max poids) pour chaque exercice.
+ * Calcule les records personnels (max poids) pour chaque exercice, en incluant le poids lesté.
  * @param workouts Tableau des entraînements.
  * @returns Tableau d'objets PersonalRecord.
  */
@@ -54,12 +55,13 @@ export const calculatePersonalRecords = (workouts: Workout[]): PersonalRecord[] 
   workouts.forEach(workout => {
     workout.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
+        const effectiveWeight = set.weight + (set.weighted_kg || 0);
         const currentMax = prMap.get(exercise.name);
-        if (!currentMax || set.weight > currentMax.maxWeight) {
-          prMap.set(exercise.name, { maxWeight: set.weight, date: workout.date });
-        } else if (set.weight === currentMax.maxWeight && new Date(workout.date) < new Date(currentMax.date)) {
+        if (!currentMax || effectiveWeight > currentMax.maxWeight) {
+          prMap.set(exercise.name, { maxWeight: effectiveWeight, date: workout.date });
+        } else if (effectiveWeight === currentMax.maxWeight && new Date(workout.date) < new Date(currentMax.date)) {
           // If same weight, keep the earliest date
-          prMap.set(exercise.name, { maxWeight: set.weight, date: workout.date });
+          prMap.set(exercise.name, { maxWeight: effectiveWeight, date: workout.date });
         }
       });
     });
@@ -82,13 +84,13 @@ export const calculatePersonalRecords = (workouts: Workout[]): PersonalRecord[] 
  * sorted by date descending.
  * @param workouts All user workouts.
  * @param exerciseName The name of the exercise to get history for.
- * @returns An array of objects { date, reps, weight } for the given exercise.
+ * @returns An array of objects { date, reps, weight, weighted_kg } for the given exercise.
  */
 export const getExerciseHistory = (
   workouts: Workout[],
   exerciseName: string
-): { date: string; reps: number; weight: number }[] => {
-  const history: { date: string; reps: number; weight: number }[] = [];
+): { date: string; reps: number; weight: number; weighted_kg: number | null }[] => {
+  const history: { date: string; reps: number; weight: number; weighted_kg: number | null }[] = [];
 
   workouts.forEach(workout => {
     workout.exercises.forEach(exercise => {
@@ -98,6 +100,7 @@ export const getExerciseHistory = (
             date: workout.date,
             reps: set.reps,
             weight: set.weight,
+            weighted_kg: set.weighted_kg || null,
           });
         });
       }
@@ -115,33 +118,73 @@ export const getExerciseHistory = (
  * based on historical performance and template targets.
  * @param history All historical sets for the specific exercise, sorted by date descending.
  * @param templateTarget The target reps/weight from the workout template for this set.
- * @returns Suggested reps and weight.
+ * @returns Suggested reps and weight, including weighted_kg.
  */
 export const getSmartSetSuggestion = (
-  history: { date: string; reps: number; weight: number }[],
+  history: { date: string; reps: number; weight: number; weighted_kg: number | null }[],
   templateTarget: TemplateExerciseSet
 ): ExerciseSet => {
-  const { targetReps, targetWeight } = templateTarget;
+  const { targetReps, targetWeight, targetWeighted_kg } = templateTarget;
 
   // Default to template target if no history or if template target is 0
-  if (history.length === 0 || (targetReps === 0 && targetWeight === 0)) {
-    return { reps: targetReps, weight: targetWeight };
+  if (history.length === 0 || (targetReps === 0 && targetWeight === 0 && (targetWeighted_kg || 0) === 0)) {
+    return { reps: targetReps, weight: targetWeight, weighted_kg: targetWeighted_kg };
   }
 
-  // Find the most recent set that achieved or exceeded the target reps with a positive weight
+  // Find the most recent set that achieved or exceeded the target reps with a positive effective weight
   const lastSuccessfulSet = history.find(
-    (h) => h.reps >= targetReps && h.weight > 0
+    (h) => h.reps >= targetReps && (h.weight + (h.weighted_kg || 0)) > 0
   );
 
   if (lastSuccessfulSet) {
-    // Suggest a slight increase in weight (e.g., 2.5kg)
-    const suggestedWeight = lastSuccessfulSet.weight + 2.5;
-    return { reps: targetReps, weight: suggestedWeight };
+    // Suggest a slight increase in effective weight (e.g., 2.5kg)
+    const lastEffectiveWeight = lastSuccessfulSet.weight + (lastSuccessfulSet.weighted_kg || 0);
+    const suggestedEffectiveWeight = lastEffectiveWeight + 2.5;
+
+    // Try to keep the weighted_kg if it was used, otherwise apply increase to main weight
+    let suggestedWeight = lastSuccessfulSet.weight;
+    let suggestedWeighted_kg = lastSuccessfulSet.weighted_kg || 0;
+
+    if (suggestedWeighted_kg > 0) {
+      // If weighted, try to increase weighted_kg
+      suggestedWeighted_kg = suggestedEffectiveWeight - suggestedWeight;
+      if (suggestedWeighted_kg < 0) { // If suggested effective weight is less than base weight, adjust base weight
+        suggestedWeight = suggestedEffectiveWeight;
+        suggestedWeighted_kg = 0;
+      }
+    } else {
+      // If not weighted, increase main weight
+      suggestedWeight = suggestedEffectiveWeight;
+    }
+
+    return { reps: targetReps, weight: suggestedWeight, weighted_kg: suggestedWeighted_kg };
   } else {
     // If no successful set found for target reps, suggest the template target weight
-    // or the highest weight ever lifted for any reps if template target is 0
-    const highestWeightEver = history.reduce((max, h) => Math.max(max, h.weight), 0);
-    const suggestedWeight = targetWeight > 0 ? targetWeight : highestWeightEver > 0 ? highestWeightEver : 0;
-    return { reps: targetReps, weight: suggestedWeight };
+    // or the highest effective weight ever lifted for any reps if template target is 0
+    const highestEffectiveWeightEver = history.reduce((max, h) => Math.max(max, h.weight + (h.weighted_kg || 0)), 0);
+    const suggestedEffectiveWeight = (targetWeight + (targetWeighted_kg || 0)) > 0
+      ? (targetWeight + (targetWeighted_kg || 0))
+      : highestEffectiveWeightEver > 0
+        ? highestEffectiveWeightEver
+        : 0;
+
+    // Distribute suggested effective weight back to weight and weighted_kg, prioritizing weighted_kg if template had it
+    let finalSuggestedWeight = targetWeight;
+    let finalSuggestedWeighted_kg = targetWeighted_kg;
+
+    if (finalSuggestedWeighted_kg && finalSuggestedWeighted_kg > 0) {
+      // If template had weighted_kg, try to maintain it and adjust main weight
+      finalSuggestedWeight = suggestedEffectiveWeight - finalSuggestedWeighted_kg;
+      if (finalSuggestedWeight < 0) { // If main weight becomes negative, put all on weighted_kg
+        finalSuggestedWeighted_kg = suggestedEffectiveWeight;
+        finalSuggestedWeight = 0;
+      }
+    } else {
+      // Otherwise, put all on main weight
+      finalSuggestedWeight = suggestedEffectiveWeight;
+      finalSuggestedWeighted_kg = 0;
+    }
+
+    return { reps: targetReps, weight: finalSuggestedWeight, weighted_kg: finalSuggestedWeighted_kg };
   }
 };

@@ -65,6 +65,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, onDelete }) => {
                 {exercise.sets.map((set, index) => (
                   <li key={index} className="text-sm text-muted-foreground">
                     Série {index + 1} : {set.reps} reps @ {set.weight} kg
+                    {set.weighted_kg && set.weighted_kg > 0 ? ` (+${set.weighted_kg} kg lesté)` : ''}
                   </li>
                 ))}
               </ul>

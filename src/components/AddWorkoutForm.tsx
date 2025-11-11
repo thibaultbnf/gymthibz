@@ -32,6 +32,7 @@ import { getExerciseHistory, getSmartSetSuggestion } from "@/utils/workoutCalcul
 const exerciseSetSchema = z.object({
   reps: z.coerce.number().min(0, "Répétitions requises"),
   weight: z.coerce.number().min(0, "Poids requis"),
+  weighted_kg: z.coerce.number().min(0, "Poids lesté requis").optional().or(z.literal(0)), // New field
 });
 
 const exerciseSchema = z.object({
@@ -88,7 +89,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           id: crypto.randomUUID(),
           exercise_id: "", // Initialize with empty string
           name: "",
-          sets: [{ reps: 0, weight: 0 }],
+          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
         },
       ],
     },
@@ -128,6 +129,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
               return {
                 reps: suggestion.reps,
                 weight: suggestion.weight,
+                weighted_kg: suggestion.weighted_kg || 0, // Use suggested weighted_kg
               };
             }),
           };
@@ -140,7 +142,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           id: crypto.randomUUID(),
           exercise_id: "", // Initialize with empty string
           name: "",
-          sets: [{ reps: 0, weight: 0 }],
+          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
         },
       ]);
     }
@@ -162,6 +164,10 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
       exercises: values.exercises.map(ex => ({
         ...ex,
         id: ex.id || crypto.randomUUID(),
+        sets: ex.sets.map(set => ({
+          ...set,
+          weighted_kg: set.weighted_kg && set.weighted_kg > 0 ? set.weighted_kg : null, // Store null if 0
+        })),
       })),
     };
     onAddWorkout(newWorkout);
@@ -173,7 +179,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           id: crypto.randomUUID(),
           exercise_id: "", // Initialize with empty string
           name: "",
-          sets: [{ reps: 0, weight: 0 }],
+          sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
         },
       ],
     });
@@ -354,6 +360,19 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name={`exercises.${exerciseIndex}.sets.${setIndex}.weighted_kg`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Poids lesté (kg)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.5" placeholder="0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <Button
                         type="button"
                         variant="outline"
@@ -380,7 +399,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                     onClick={() =>
                       form.setValue(`exercises.${exerciseIndex}.sets`, [
                         ...form.getValues(`exercises.${exerciseIndex}.sets`),
-                        { reps: 0, weight: 0 },
+                        { reps: 0, weight: 0, weighted_kg: 0 },
                       ])
                     }
                   >
@@ -398,7 +417,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                   id: crypto.randomUUID(),
                   exercise_id: "", // Initialize with empty string
                   name: "",
-                  sets: [{ reps: 0, weight: 0 }],
+                  sets: [{ reps: 0, weight: 0, weighted_kg: 0 }],
                 })
               }
             >

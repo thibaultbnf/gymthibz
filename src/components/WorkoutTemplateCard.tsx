@@ -85,7 +85,8 @@ const WorkoutTemplateCard: React.FC<WorkoutTemplateCardProps> = ({ template, onE
               <ul className="mt-2 space-y-1 pl-7">
                 {exercise.targetSets.map((set, index) => (
                   <li key={index} className="text-sm text-muted-foreground">
-                    Série {index + 1} : {set.targetReps} reps @ {set.targetWeight} kg (cible)
+                    Série {index + 1} : {set.targetReps} reps @ {set.targetWeight} kg
+                    {set.targetWeighted_kg && set.targetWeighted_kg > 0 ? ` (+${set.targetWeighted_kg} kg lesté)` : ''} (cible)
                   </li>
                 ))}
               </ul>
