@@ -38,7 +38,7 @@ const oneRMFormSchema = z.object({
   weight: z.coerce.number().min(1, "Le poids est requis"),
   reps: z.coerce.number().min(1, "Le nombre de répétitions est requis").max(10, "Max 10 répétitions pour une estimation fiable"),
   numSets: z.coerce.number().min(1, "Nombre de séries requis").max(10, "Max 10 séries").optional().or(z.literal(0)),
-  targetRepsPerSet: z.coerce.number().min(1, "Répétitions cibles requises").optional().or(z.literal(0)),
+  targetRepsScheme: z.string().min(1, "Schéma de répétitions cibles requis (ex: 10,8,6)").optional(), // Changed to string for scheme
   targetPercentage: z.coerce.number().min(0.1).max(1).optional(), // Percentage of 1RM for working weight
 });
 
@@ -48,17 +48,25 @@ interface OneRMCalculatorModalProps {
   onApplySets?: (sets: ExerciseSet[]) => void; // Callback to apply generated sets
   triggerButtonText?: string;
   initialExerciseId?: string;
+  open?: boolean; // Added to control modal from parent
+  onOpenChange?: (isOpen: boolean) => void; // Added to control modal from parent
 }
 
 const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
   onApplySets,
   triggerButtonText = "Calculateur 1RM & Poids de travail",
   initialExerciseId,
+  open,
+  onOpenChange,
 }) => {
   const { exercises, loading: exercisesLoading } = useExercises();
   const [estimated1RM, setEstimated1RM] = useState<number | null>(null);
   const [workingWeights, setWorkingWeights] = useState<{ percentage: number; weight: number }[]>([]);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false); // Internal state for modal
+
+  // Use internal state if not controlled by parent, otherwise use parent's state
+  const isModalOpen = open !== undefined ? open : internalOpen;
+  const setModalOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
 
   const form = useForm<OneRMFormValues>({
     resolver: zodResolver(oneRMFormSchema),
@@ -67,7 +75,7 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
       weight: 0,
       reps: 0,
       numSets: 3, // Default to 3 sets
-      targetRepsPerSet: 8, // Default to 8 reps
+      targetRepsScheme: "8,8,8", // Default to 8 reps for 3 sets
       targetPercentage: 0.75, // Default to 75% of 1RM
     },
   });
@@ -102,34 +110,41 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
 
     const values = form.getValues();
     const numSets = values.numSets || 0;
-    const targetReps = values.targetRepsPerSet || 0;
+    const targetRepsScheme = values.targetRepsScheme;
     const targetPercentage = values.targetPercentage || 0;
 
-    if (numSets <= 0 || targetReps <= 0 || targetPercentage <= 0) {
-      showError("Veuillez spécifier le nombre de séries, les répétitions cibles et le pourcentage.");
+    if (numSets <= 0 || !targetRepsScheme || targetPercentage <= 0) {
+      showError("Veuillez spécifier le nombre de séries, le schéma de répétitions cibles et le pourcentage.");
+      return;
+    }
+
+    const parsedReps = targetRepsScheme.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+
+    if (parsedReps.length === 0) {
+      showError("Le schéma de répétitions cibles n'est pas valide. Utilisez des nombres séparés par des virgules (ex: 10,8,6).");
       return;
     }
 
     const calculatedWorkingWeight = calculateWorkingWeight(estimated1RM, targetPercentage);
-    const generatedSets: ExerciseSet[] = Array.from({ length: numSets }).map(() => ({
-      reps: targetReps,
+    const generatedSets: ExerciseSet[] = Array.from({ length: numSets }).map((_, index) => ({
+      reps: parsedReps[index % parsedReps.length], // Cycle through reps scheme if numSets > parsedReps.length
       weight: calculatedWorkingWeight,
       weighted_kg: null, // Default to null, user can adjust if bodyweight
     }));
 
     onApplySets(generatedSets);
-    setOpen(false); // Close modal after applying
+    setModalOpen(false); // Close modal after applying
   };
 
   const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
+    setModalOpen(isOpen);
     if (!isOpen) {
       form.reset({
         exercise_id: initialExerciseId || "",
         weight: 0,
         reps: 0,
         numSets: 3,
-        targetRepsPerSet: 8,
+        targetRepsScheme: "8,8,8",
         targetPercentage: 0.75,
       });
       setEstimated1RM(null);
@@ -141,7 +156,7 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
   const isBodyweightExercise = selectedExercise?.type === 'bodyweight';
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={isModalOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full">
           <Calculator className="mr-2 h-4 w-4" /> {triggerButtonText}
@@ -245,12 +260,12 @@ const OneRMCalculatorModal: React.FC<OneRMCalculatorModalProps> = ({
                 />
                 <FormField
                   control={form.control}
-                  name="targetRepsPerSet"
+                  name="targetRepsScheme" // Changed field name
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Répétitions cibles</FormLabel>
+                      <FormLabel>Schéma de répétitions cibles</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="Ex: 8" {...field} />
+                        <Input placeholder="Ex: 10,8,6" {...field} /> {/* Changed input type/placeholder */}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
