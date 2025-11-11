@@ -22,16 +22,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Workout } from "@/types/workout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Workout, WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 
 const exerciseSetSchema = z.object({
-  reps: z.coerce.number().min(1, "Répétitions requises"),
+  reps: z.coerce.number().min(0, "Répétitions requises"),
   weight: z.coerce.number().min(0, "Poids requis"),
 });
 
 const exerciseSchema = z.object({
-  id: z.string().uuid().optional(), // Optional for new exercises, will be generated
+  id: z.string().uuid().optional(),
   name: z.string().min(1, "Nom de l'exercice requis"),
   sets: z.array(exerciseSetSchema).min(1, "Au moins une série est requise"),
 });
@@ -40,6 +41,7 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Une date d'entraînement est requise.",
   }),
+  templateId: z.string().optional(), // Added for template selection
   exercises: z.array(exerciseSchema).min(1, "Au moins un exercice est requis"),
 });
 
@@ -47,13 +49,15 @@ type WorkoutFormValues = z.infer<typeof formSchema>;
 
 interface AddWorkoutFormProps {
   onAddWorkout: (workout: Workout) => void;
+  workoutTemplates: WorkoutTemplate[];
 }
 
-const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout }) => {
+const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout, workoutTemplates }) => {
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
+      templateId: "",
       exercises: [
         {
           id: crypto.randomUUID(),
@@ -69,18 +73,48 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout }) => {
     name: "exercises",
   });
 
+  const selectedTemplateId = form.watch("templateId");
+
+  React.useEffect(() => {
+    if (selectedTemplateId) {
+      const selectedTemplate = workoutTemplates.find(t => t.id === selectedTemplateId);
+      if (selectedTemplate) {
+        const exercisesFromTemplate = selectedTemplate.exercises.map(templateEx => ({
+          id: crypto.randomUUID(), // Generate new ID for the workout exercise
+          name: templateEx.name,
+          sets: templateEx.targetSets.map(targetSet => ({
+            reps: targetSet.targetReps,
+            weight: targetSet.targetWeight,
+          })),
+        }));
+        form.setValue("exercises", exercisesFromTemplate);
+      }
+    } else {
+      // If no template selected, reset to a single empty exercise
+      form.setValue("exercises", [
+        {
+          id: crypto.randomUUID(),
+          name: "",
+          sets: [{ reps: 0, weight: 0 }],
+        },
+      ]);
+    }
+  }, [selectedTemplateId, workoutTemplates, form]);
+
+
   const onSubmit = (values: WorkoutFormValues) => {
     const newWorkout: Workout = {
       id: crypto.randomUUID(),
       date: format(values.date, "yyyy-MM-dd"),
       exercises: values.exercises.map(ex => ({
         ...ex,
-        id: ex.id || crypto.randomUUID(), // Ensure ID for new exercises
+        id: ex.id || crypto.randomUUID(),
       })),
     };
     onAddWorkout(newWorkout);
     form.reset({
       date: new Date(),
+      templateId: "",
       exercises: [
         {
           id: crypto.randomUUID(),
@@ -138,6 +172,32 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({ onAddWorkout }) => {
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="templateId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Choisir un modèle d'entraînement</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un modèle (optionnel)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Aucun modèle</SelectItem>
+                      {workoutTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

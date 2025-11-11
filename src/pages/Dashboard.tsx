@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import AICoachSection from "@/components/AICoachSection"; // Import the new AI Coach section
+import AICoachSection from "@/components/AICoachSection";
 
 const Dashboard = () => {
   return (
@@ -15,10 +15,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <p>C'est ici que vous suivrez vos progrès et écraserez vos objectifs.</p>
-            <p className="mt-2">Commencez par enregistrer un entraînement !</p>
+            <p className="mt-2">Commencez par enregistrer un entraînement ou créez un modèle !</p>
           </CardContent>
         </Card>
-        <AICoachSection /> {/* Add the AI Coach section here */}
+        <AICoachSection />
         <Card>
           <CardHeader>
             <CardTitle>Progrès Hebdomadaire</CardTitle>
