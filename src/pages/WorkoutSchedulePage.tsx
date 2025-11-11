@@ -3,10 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Import Popover
+import { Command, CommandGroup, CommandItem } from "@/components/ui/command"; // Import Command components
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
+import { Badge } from "@/components/ui/badge"; // Import Badge
+import { ChevronDown, X, Save } from "lucide-react"; // Import ChevronDown and X icons
 import { useWorkoutSchedule } from "@/hooks/use-workout-schedule";
-import { Loader2, Save } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
+import { cn } from "@/lib/utils"; // Import cn for styling
 
 const daysOfWeek = [
   { value: 1, label: "Lundi" },
@@ -29,12 +34,23 @@ const focusAreaOptions = [
   { value: "other", label: "Autre" },
 ];
 
+const focusAreaLabels: { [key: string]: string } = {
+  "back": "Dos",
+  "chest": "Pectoraux",
+  "shoulders": "Épaules",
+  "legs": "Jambes",
+  "arms": "Bras",
+  "full_body": "Full Body",
+  "cardio": "Cardio",
+  "other": "Autre",
+};
+
 const WorkoutSchedulePage: React.FC = () => {
   const { schedule, upsertScheduleEntry, loading: scheduleLoading, error: scheduleError } = useWorkoutSchedule();
-  const [localSchedule, setLocalSchedule] = useState<{ [key: number]: string | null }>({});
+  const [localSchedule, setLocalSchedule] = useState<{ [key: number]: string[] | null }>({});
 
   useEffect(() => {
-    const initialSchedule: { [key: number]: string | null } = {};
+    const initialSchedule: { [key: number]: string[] | null } = {};
     daysOfWeek.forEach(day => {
       const entry = schedule.find(s => s.day_of_week === day.value);
       initialSchedule[day.value] = entry?.focus_area || null;
@@ -42,17 +58,29 @@ const WorkoutSchedulePage: React.FC = () => {
     setLocalSchedule(initialSchedule);
   }, [schedule]);
 
-  const handleSelectChange = (dayOfWeek: number, focusArea: string) => {
-    setLocalSchedule(prev => ({
-      ...prev,
-      [dayOfWeek]: focusArea === "none" ? null : focusArea, // Set to null if "none" is selected
-    }));
+  const handleToggleFocusArea = (dayOfWeek: number, focusArea: string) => {
+    setLocalSchedule(prev => {
+      const currentAreas = prev[dayOfWeek] || [];
+      if (currentAreas.includes(focusArea)) {
+        const newAreas = currentAreas.filter(area => area !== focusArea);
+        return {
+          ...prev,
+          [dayOfWeek]: newAreas.length > 0 ? newAreas : null,
+        };
+      } else {
+        const newAreas = [...currentAreas, focusArea];
+        return {
+          ...prev,
+          [dayOfWeek]: newAreas,
+        };
+      }
+    });
   };
 
   const handleSaveSchedule = async () => {
     try {
-      for (const dayOfWeek of daysOfWeek) {
-        await upsertScheduleEntry(dayOfWeek.value, localSchedule[dayOfWeek.value]);
+      for (const day of daysOfWeek) {
+        await upsertScheduleEntry(day.value, localSchedule[day.value]);
       }
       showSuccess("Programme d'entraînement mis à jour avec succès !");
     } catch (err: any) {
@@ -92,22 +120,69 @@ const WorkoutSchedulePage: React.FC = () => {
           {daysOfWeek.map((day) => (
             <div key={day.value} className="flex items-center justify-between">
               <label className="w-1/3 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{day.label}</label>
-              <Select
-                value={localSchedule[day.value] === null ? "none" : localSchedule[day.value] || ""} // Map null to "none" for Select component
-                onValueChange={(value) => handleSelectChange(day.value, value)}
-              >
-                <SelectTrigger className="w-2/3">
-                  <SelectValue placeholder="Sélectionner une zone de focus" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Jour de repos</SelectItem> {/* Changed value to "none" */}
-                  {focusAreaOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-2/3 justify-between h-auto min-h-[38px]"
+                  >
+                    <div className="flex flex-wrap gap-1">
+                      {localSchedule[day.value] && localSchedule[day.value]!.length > 0 ? (
+                        localSchedule[day.value]!.map((area) => (
+                          <Badge key={area} variant="secondary" className="flex items-center">
+                            {focusAreaLabels[area] || area}
+                            <X
+                              className="ml-1 h-3 w-3 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent popover from closing
+                                handleToggleFocusArea(day.value, area);
+                              }}
+                            />
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground">Jour de repos ou Sélectionner...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandGroup>
+                      {focusAreaOptions.map((option) => (
+                        <CommandItem
+                          key={option.value}
+                          onSelect={() => handleToggleFocusArea(day.value, option.value)}
+                          className="cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={localSchedule[day.value]?.includes(option.value) || false}
+                            onCheckedChange={() => handleToggleFocusArea(day.value, option.value)}
+                            className="mr-2"
+                          />
+                          {option.label}
+                        </CommandItem>
+                      ))}
+                      <CommandItem
+                        onSelect={() => setLocalSchedule(prev => ({ ...prev, [day.value]: null }))}
+                        className={cn(
+                          "cursor-pointer",
+                          (!localSchedule[day.value] || localSchedule[day.value]?.length === 0) && "bg-accent text-accent-foreground"
+                        )}
+                      >
+                        <Checkbox
+                          checked={!localSchedule[day.value] || localSchedule[day.value]?.length === 0}
+                          onCheckedChange={() => setLocalSchedule(prev => ({ ...prev, [day.value]: null }))}
+                          className="mr-2"
+                        />
+                        Jour de repos
+                      </CommandItem>
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           ))}
           <Button onClick={handleSaveSchedule} className="w-full">

@@ -4,13 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/contexts/SessionContext";
 import { showError } from "@/utils/toast";
-import { WorkoutTemplate } from "@/types/workout";
-
-export interface ScheduledWorkout {
-  id: string;
-  day_of_week: number;
-  focus_area: string | null; // Changed from workout_template_id
-}
+import { ScheduledWorkout } from "@/types/workout"; // Import ScheduledWorkout from types
 
 export function useWorkoutSchedule() {
   const { user, loading: sessionLoading } = useSession();
@@ -73,7 +67,7 @@ export function useWorkoutSchedule() {
     };
   }, [user, sessionLoading]);
 
-  const upsertScheduleEntry = async (dayOfWeek: number, focusArea: string | null) => {
+  const upsertScheduleEntry = async (dayOfWeek: number, focusArea: string[] | null) => {
     if (!user) {
       showError("Vous devez être connecté pour modifier le programme.");
       return;
@@ -85,7 +79,7 @@ export function useWorkoutSchedule() {
         {
           user_id: user.id,
           day_of_week: dayOfWeek,
-          focus_area: focusArea,
+          focus_area: focusArea && focusArea.length > 0 ? focusArea : null, // Store null if array is empty
         },
         { onConflict: 'user_id, day_of_week' } // Conflict on user_id and day_of_week
       );

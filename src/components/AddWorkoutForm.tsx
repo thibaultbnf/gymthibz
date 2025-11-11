@@ -52,9 +52,20 @@ type WorkoutFormValues = z.infer<typeof formSchema>;
 interface AddWorkoutFormProps {
   onAddWorkout: (workout: Workout) => void;
   workoutTemplates: WorkoutTemplate[];
-  initialFocusArea?: string; // New prop for initial focus area
+  initialFocusArea?: string; // Now can be a comma-separated string
   onFormSubmitted?: () => void;
 }
+
+const focusAreaLabels: { [key: string]: string } = {
+  "back": "Dos",
+  "chest": "Pectoraux",
+  "shoulders": "Épaules",
+  "legs": "Jambes",
+  "arms": "Bras",
+  "full_body": "Full Body",
+  "cardio": "Cardio",
+  "other": "Autre",
+};
 
 const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
   onAddWorkout,
@@ -85,16 +96,18 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
 
   const selectedTemplateId = form.watch("templateId");
 
-  const filteredTemplates = initialFocusArea
-    ? workoutTemplates.filter(t => t.focus_area === initialFocusArea)
+  const initialFocusAreasArray = initialFocusArea ? initialFocusArea.split(',') : [];
+
+  const filteredTemplates = initialFocusAreasArray.length > 0
+    ? workoutTemplates.filter(t => t.focus_area && initialFocusAreasArray.includes(t.focus_area))
     : workoutTemplates;
 
   React.useEffect(() => {
     // If an initialFocusArea is provided, try to pre-select the first matching template
-    if (initialFocusArea && filteredTemplates.length > 0 && !selectedTemplateId) {
+    if (initialFocusAreasArray.length > 0 && filteredTemplates.length > 0 && !selectedTemplateId) {
       form.setValue("templateId", filteredTemplates[0].id);
     }
-  }, [initialFocusArea, filteredTemplates, form, selectedTemplateId]);
+  }, [initialFocusAreasArray, filteredTemplates, form, selectedTemplateId]);
 
   React.useEffect(() => {
     if (selectedTemplateId) {
@@ -116,7 +129,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         });
         form.setValue("exercises", exercisesFromTemplate);
       }
-    } else if (!initialFocusArea) { // Only reset if no initial focus area and no template selected
+    } else if (initialFocusAreasArray.length === 0) { // Only reset if no initial focus area and no template selected
       form.setValue("exercises", [
         {
           id: crypto.randomUUID(),
@@ -125,7 +138,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
         },
       ]);
     }
-  }, [selectedTemplateId, workoutTemplates, form, initialFocusArea, allWorkouts]);
+  }, [selectedTemplateId, workoutTemplates, form, initialFocusAreasArray, allWorkouts]);
 
 
   const onSubmit = (values: WorkoutFormValues) => {

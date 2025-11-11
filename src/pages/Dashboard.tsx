@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge"; // Import Badge
 
 const focusAreaLabels: { [key: string]: string } = {
   "back": "Dos",
@@ -42,7 +43,7 @@ const Dashboard = () => {
   const today = new Date();
   const currentDayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, ..., 6 for Saturday
   const todaysScheduledWorkout = schedule.find(s => s.day_of_week === currentDayOfWeek);
-  const todaysFocusArea = todaysScheduledWorkout?.focus_area;
+  const todaysFocusAreas = todaysScheduledWorkout?.focus_area;
 
   return (
     <div className="container mx-auto py-8">
@@ -68,14 +69,21 @@ const Dashboard = () => {
           <CardContent>
             {scheduleLoading ? (
               <p className="text-muted-foreground">Chargement du programme...</p>
-            ) : todaysFocusArea ? (
+            ) : todaysFocusAreas && todaysFocusAreas.length > 0 ? (
               <>
-                <div className="text-2xl font-bold mb-2">Focus : {focusAreaLabels[todaysFocusArea] || todaysFocusArea}</div>
+                <div className="text-2xl font-bold mb-2 flex flex-wrap gap-2">
+                  Focus :
+                  {todaysFocusAreas.map(area => (
+                    <Badge key={area} variant="default">
+                      {focusAreaLabels[area] || area}
+                    </Badge>
+                  ))}
+                </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Choisissez un modèle d'entraînement pour votre séance de {focusAreaLabels[todaysFocusArea] || todaysFocusArea}.
+                  Choisissez un modèle d'entraînement pour votre séance.
                 </p>
                 <Button asChild className="w-full">
-                  <Link to={`/workouts?focusArea=${todaysFocusArea}`}>
+                  <Link to={`/workouts?focusArea=${todaysFocusAreas.join(',')}`}>
                     <Play className="h-4 w-4 mr-2" /> Démarrer l'entraînement
                   </Link>
                 </Button>

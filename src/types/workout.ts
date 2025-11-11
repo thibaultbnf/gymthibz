@@ -73,3 +73,9 @@ export interface FoodEntry {
   date: string; // ISO date string (e.g., 'YYYY-MM-DD')
   items: FoodItem[];
 }
+
+export interface ScheduledWorkout {
+  id: string;
+  day_of_week: number;
+  focus_area: string[] | null; // Changed to array of strings
+}
