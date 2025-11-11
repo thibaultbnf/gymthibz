@@ -86,8 +86,8 @@ const ActiveWorkoutPage: React.FC = () => {
   const initialFocusArea = searchParams.get("focusArea");
 
   const { workouts: allWorkouts, addWorkout } = useWorkouts();
-  const { templates: workoutTemplates, loading: templatesLoading } = useWorkoutTemplates();
-  const { exercises, loading: exercisesLoading } = useExercises();
+  const { templates: workoutTemplates, loading: templatesLoading, error: templatesError } = useWorkoutTemplates(); // Get error
+  const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises(); // Get error
 
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
   const [activeSetIndex, setActiveSetIndex] = useState(0);
@@ -145,7 +145,7 @@ const ActiveWorkoutPage: React.FC = () => {
             name: templateEx.name,
             type: templateEx.type,
             sets: templateEx.targetSets.map(targetSet => {
-              const suggestion = getSmartSetSuggestion(templateSet, templateEx.type, lastWorkoutSuccessful); // Pass overall success
+              const suggestion = getSmartSetSuggestion(targetSet, templateEx.type, lastWorkoutSuccessful); // Pass overall success
               return {
                 reps: suggestion.reps,
                 weight: suggestion.weight,
@@ -261,6 +261,15 @@ const ActiveWorkoutPage: React.FC = () => {
     );
   }
 
+  if (templatesError || exercisesError) {
+    return (
+      <div className="container mx-auto py-8 text-center text-destructive">
+        <h1 className="text-4xl font-bold mb-8">Erreur de chargement</h1>
+        <p className="text-lg">Impossible de charger les données d'entraînement : {templatesError?.message || exercisesError?.message}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold mb-8">Session d'entraînement active</h1>
@@ -328,11 +337,17 @@ const ActiveWorkoutPage: React.FC = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {filteredTemplates.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name} {template.focus_area ? `(${focusAreaLabels[template.focus_area] || template.focus_area})` : ''}
+                        {filteredTemplates.length > 0 ? (
+                          filteredTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name} {template.focus_area ? `(${focusAreaLabels[template.focus_area] || template.focus_area})` : ''}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-templates" disabled>
+                            Aucun modèle disponible
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
