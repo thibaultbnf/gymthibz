@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { WorkoutTemplate } from "@/types/workout";
 import { showSuccess, showError } from "@/utils/toast";
 import { useExercises } from "@/hooks/use-exercises";
+import OneRMCalculatorModal from "@/components/OneRMCalculatorModal"; // Import the new modal
+import { generateTrainingPlan } from "@/utils/oneRMCalculations"; // Import the utility
+import { useSession } from "@/contexts/SessionContext"; // Import useSession
+import { supabase } from "@/integrations/supabase/client"; // Import supabase client
 
 const templateExerciseSetSchema = z.object({
   targetReps: z.coerce.number().min(1, "Répétitions cibles requises"),
@@ -70,7 +74,14 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
   onUpdateTemplate,
   onCancel,
 }) => {
+  const { user } = useSession();
   const { exercises, loading: exercisesLoading, error: exercisesError } = useExercises();
+  const [userGoal, setUserGoal] = useState<string | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  const [showOneRMModal, setShowOneRMModal] = useState(false);
+  const [currentExerciseIndexFor1RM, setCurrentExerciseIndexFor1RM] = useState<number | null>(null);
+  const [currentExerciseNameFor1RM, setCurrentExerciseNameFor1RM] = useState<string>("");
 
   const form = useForm<WorkoutTemplateFormValues>({
     resolver: zodResolver(formSchema),
@@ -83,7 +94,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
             id: ex.id,
             exercise_id: ex.exercise_id,
             name: ex.name,
-            type: ex.type, // ADDED: Ensure type is set from initialData
+            type: ex.type,
             targetSets: ex.targetSets.map(set => ({
               targetReps: set.targetReps,
               targetWeight: set.targetWeight,
@@ -100,40 +111,88 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
               id: crypto.randomUUID(),
               exercise_id: "",
               name: "",
-              type: "", // ADDED: Initialize type
+              type: "",
               targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
             },
           ],
         },
-  }); // FIXED: Removed extra parenthesis here
+  });
 
   const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
     control: form.control,
     name: "exercises",
   });
 
+  // Fetch user goal
+  useEffect(() => {
+    const fetchUserGoal = async () => {
+      if (!user) {
+        setProfileLoading(false);
+        return;
+      }
+      setProfileLoading(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("goal")
+        .eq("id", user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        showError(`Erreur lors du chargement de l'objectif utilisateur: ${error.message}`);
+      } else if (data) {
+        setUserGoal(data.goal);
+      }
+      setProfileLoading(false);
+    };
+    fetchUserGoal();
+  }, [user]);
+
   const handleExerciseSelect = (exerciseIndex: number, selectedExerciseId: string) => {
     const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
     if (selectedExercise) {
       form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
-      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // ADDED: Set type
+      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type);
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`);
 
       // Reset targetWeighted_kg if the new exercise type is not 'bodyweight'
       if (selectedExercise.type !== 'bodyweight') {
         form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
           ...set,
-          targetWeighted_kg: 0, // Explicitly set to 0
+          targetWeighted_kg: 0,
         })));
       } else {
-        // If it is bodyweight, ensure it's not null if it was previously
         form.setValue(`exercises.${exerciseIndex}.targetSets`, form.getValues(`exercises.${exerciseIndex}.targetSets`).map(set => ({
           ...set,
           targetWeighted_kg: set.targetWeighted_kg === null ? 0 : set.targetWeighted_kg,
         })));
       }
+
+      // Trigger 1RM modal for new exercise selection
+      setCurrentExerciseIndexFor1RM(exerciseIndex);
+      setCurrentExerciseNameFor1RM(selectedExercise.name);
+      setShowOneRMModal(true);
     }
+  };
+
+  const handleOneRMCalculated = (oneRM: number) => {
+    if (currentExerciseIndexFor1RM !== null && userGoal) {
+      const generatedSets = generateTrainingPlan(oneRM, userGoal);
+      const currentExerciseType = form.getValues(`exercises.${currentExerciseIndexFor1RM}.type`);
+
+      // Adjust targetWeighted_kg based on exercise type
+      const finalGeneratedSets = generatedSets.map(set => ({
+        ...set,
+        targetWeighted_kg: currentExerciseType === 'bodyweight' ? (set.targetWeighted_kg || 0) : null,
+      }));
+
+      form.setValue(`exercises.${currentExerciseIndexFor1RM}.targetSets`, finalGeneratedSets);
+      showSuccess("Plan d'entraînement généré et appliqué !");
+    } else if (!userGoal) {
+      showError("Veuillez définir votre objectif d'entraînement dans votre profil pour générer un plan.");
+    }
+    setCurrentExerciseIndexFor1RM(null);
+    setCurrentExerciseNameFor1RM("");
   };
 
   const getWeightLabel = (exerciseType: string, exerciseName: string) => {
@@ -155,11 +214,11 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
       name: values.name,
       description: values.description,
       focus_area: values.focus_area || null,
-      exercises: values.exercises.map(ex => ({ // FIXED: Ensure all required fields are present
+      exercises: values.exercises.map(ex => ({
         id: ex.id || crypto.randomUUID(),
         exercise_id: ex.exercise_id,
         name: ex.name,
-        type: ex.type, // ADDED: Ensure type is explicitly set
+        type: ex.type,
         targetSets: ex.targetSets.map(set => ({
           targetReps: set.targetReps,
           targetWeight: set.targetWeight,
@@ -194,11 +253,11 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
     removeExercise(index);
   };
 
-  if (exercisesLoading) {
+  if (exercisesLoading || profileLoading) {
     return (
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Chargement des exercices...</CardTitle>
+          <CardTitle>Chargement des données...</CardTitle>
         </CardHeader>
         <CardContent className="flex justify-center items-center h-40">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -214,7 +273,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           <CardTitle>Erreur de chargement des exercices</CardTitle>
         </CardHeader>
         <CardContent className="text-destructive">
-          Impossible de charger la liste des exercices : {exercisesError} {/* FIXED: Display error directly */}
+          Impossible de charger la liste des exercices : {exercisesError}
         </CardContent>
       </Card>
     );
@@ -413,7 +472,7 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
                   id: crypto.randomUUID(),
                   exercise_id: "",
                   name: "",
-                  type: "", // ADDED: Initialize type
+                  type: "",
                   targetSets: [{ targetReps: 0, targetWeight: 0, targetWeighted_kg: 0 }],
                 })
               }
@@ -432,6 +491,14 @@ const AddWorkoutTemplateForm: React.FC<AddWorkoutTemplateFormProps> = ({
           </form>
         </Form>
       </CardContent>
+      {showOneRMModal && currentExerciseIndexFor1RM !== null && (
+        <OneRMCalculatorModal
+          isOpen={showOneRMModal}
+          onClose={() => setShowOneRMModal(false)}
+          exerciseName={currentExerciseNameFor1RM}
+          onOneRMCalculated={handleOneRMCalculated}
+        />
+      )}
     </Card>
   );
 };
