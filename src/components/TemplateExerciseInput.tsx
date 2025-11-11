@@ -115,17 +115,17 @@ const TemplateExerciseInput: React.FC<TemplateExerciseInputProps> = ({
 
   const handleOneRMCalculated = (oneRM: number) => {
     if (userGoal) {
-      const generatedSets = generateTrainingPlan(oneRM, userGoal);
-      const currentExerciseType = watch(`exercises.${exerciseIndex}.type`);
+      const generatedSets = generateTrainingPlan(oneRM, userGoal, currentExerciseType); // Pass currentExerciseType
+      const currentExerciseTypeFromForm = watch(`exercises.${exerciseIndex}.type`); // Re-watch to be safe
 
       // Adjust targetWeighted_kg based on exercise type
       const finalGeneratedSets = generatedSets.map(set => ({
         ...set,
-        targetWeighted_kg: currentExerciseType === 'bodyweight' ? (set.targetWeighted_kg || 0) : null,
+        targetWeighted_kg: currentExerciseTypeFromForm === 'bodyweight' ? (set.targetWeighted_kg || 0) : null,
       }));
 
       setValue(`exercises.${exerciseIndex}.targetSets`, finalGeneratedSets);
-      showError("Plan d'entraînement généré et appliqué !"); // Using showError for now, will change to showSuccess later
+      showSuccess("Plan d'entraînement généré et appliqué !");
     } else {
       showError("Veuillez définir votre objectif d'entraînement dans votre profil pour générer un plan.");
     }
