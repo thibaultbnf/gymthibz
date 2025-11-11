@@ -39,6 +39,7 @@ const exerciseSchema = z.object({
   id: z.string().uuid().optional(),
   exercise_id: z.string().uuid().min(1, "Sélectionnez un exercice"), // New field for exercise ID
   name: z.string().min(1, "Nom de l'exercice requis"), // Still needed for display
+  type: z.string().min(1, "Type d'exercice requis"), // New field for exercise type
   sets: z.array(exerciseSetSchema).min(1, "Au moins une série est requise"),
 });
 
@@ -89,6 +90,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           id: crypto.randomUUID(),
           exercise_id: "", // Initialize with empty string
           name: "",
+          type: "", // Initialize with empty string
           sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
         },
       ],
@@ -124,8 +126,9 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
             id: crypto.randomUUID(),
             exercise_id: templateEx.exercise_id, // Use exercise_id from template
             name: templateEx.name,
+            type: templateEx.type, // Use type from template
             sets: templateEx.targetSets.map(targetSet => {
-              const suggestion = getSmartSetSuggestion(exerciseHistory, targetSet);
+              const suggestion = getSmartSetSuggestion(exerciseHistory, templateEx.type, templateEx.name, targetSet);
               return {
                 reps: suggestion.reps,
                 weight: suggestion.weight,
@@ -142,6 +145,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           id: crypto.randomUUID(),
           exercise_id: "", // Initialize with empty string
           name: "",
+          type: "", // Initialize with empty string
           sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
         },
       ]);
@@ -153,8 +157,16 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
     if (selectedExercise) {
       form.setValue(`exercises.${exerciseIndex}.exercise_id`, selectedExercise.id);
       form.setValue(`exercises.${exerciseIndex}.name`, selectedExercise.name);
+      form.setValue(`exercises.${exerciseIndex}.type`, selectedExercise.type); // Set the type
       form.clearErrors(`exercises.${exerciseIndex}.exercise_id`); // Clear error after selection
     }
+  };
+
+  const getWeightLabel = (exerciseType: string, exerciseName: string) => {
+    if (exerciseType === 'free_weight' && exerciseName.toLowerCase().includes('haltère')) {
+      return "Poids (par haltère, kg)";
+    }
+    return "Poids (kg)";
   };
 
   const onSubmit = (values: WorkoutFormValues) => {
@@ -179,6 +191,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
           id: crypto.randomUUID(),
           exercise_id: "", // Initialize with empty string
           name: "",
+          type: "", // Initialize with empty string
           sets: [{ reps: 0, weight: 0, weighted_kg: 0 }], // Initialize weighted_kg
         },
       ],
@@ -289,125 +302,129 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
               )}
             />
 
-            {exerciseFields.map((exercise, exerciseIndex) => (
-              <Card key={exercise.id} className="p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Exercice {exerciseIndex + 1}</h3>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removeExercise(exerciseIndex)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Supprimer l'exercice
-                  </Button>
-                </div>
-                <FormField
-                  control={form.control}
-                  name={`exercises.${exerciseIndex}.exercise_id`} // Bind to exercise_id
-                  render={({ field }) => (
-                    <FormItem className="mb-4">
-                      <FormLabel>Nom de l'exercice</FormLabel>
-                      <Select
-                        onValueChange={(value) => handleExerciseSelect(exerciseIndex, value)}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un exercice" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {exercises.map((ex) => (
-                            <SelectItem key={ex.id} value={ex.id}>
-                              {ex.name} ({ex.type})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            {exerciseFields.map((exercise, exerciseIndex) => {
+              const currentExerciseType = form.watch(`exercises.${exerciseIndex}.type`);
+              const currentExerciseName = form.watch(`exercises.${exerciseIndex}.name`);
+              return (
+                <Card key={exercise.id} className="p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Exercice {exerciseIndex + 1}</h3>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeExercise(exerciseIndex)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Supprimer l'exercice
+                    </Button>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name={`exercises.${exerciseIndex}.exercise_id`} // Bind to exercise_id
+                    render={({ field }) => (
+                      <FormItem className="mb-4">
+                        <FormLabel>Nom de l'exercice</FormLabel>
+                        <Select
+                          onValueChange={(value) => handleExerciseSelect(exerciseIndex, value)}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner un exercice" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {exercises.map((ex) => (
+                              <SelectItem key={ex.id} value={ex.id}>
+                                {ex.name} ({ex.type})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div className="space-y-4">
-                  <FormLabel>Séries</FormLabel>
-                  {form.watch(`exercises.${exerciseIndex}.sets`).map((set, setIndex) => (
-                    <div key={setIndex} className="flex items-end space-x-2">
-                      <FormField
-                        control={form.control}
-                        name={`exercises.${exerciseIndex}.sets.${setIndex}.reps`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>Répétitions</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`exercises.${exerciseIndex}.sets.${setIndex}.weight`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>Poids (kg)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.5" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`exercises.${exerciseIndex}.sets.${setIndex}.weighted_kg`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>Poids lesté (kg)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.5" placeholder="0" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          const currentSets = form.getValues(`exercises.${exerciseIndex}.sets`);
-                          if (currentSets.length > 1) {
-                            const newSets = [...currentSets];
-                            newSets.splice(setIndex, 1);
-                            form.setValue(`exercises.${exerciseIndex}.sets`, newSets);
-                          } else {
-                            showError("Un exercice doit avoir au moins une série.");
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      form.setValue(`exercises.${exerciseIndex}.sets`, [
-                        ...form.getValues(`exercises.${exerciseIndex}.sets`),
-                        { reps: 0, weight: 0, weighted_kg: 0 },
-                      ])
-                    }
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2" /> Ajouter une série
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                  <div className="space-y-4">
+                    <FormLabel>Séries</FormLabel>
+                    {form.watch(`exercises.${exerciseIndex}.sets`).map((set, setIndex) => (
+                      <div key={setIndex} className="flex items-end space-x-2">
+                        <FormField
+                          control={form.control}
+                          name={`exercises.${exerciseIndex}.sets.${setIndex}.reps`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Répétitions</FormLabel>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`exercises.${exerciseIndex}.sets.${setIndex}.weight`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>{getWeightLabel(currentExerciseType, currentExerciseName)}</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.5" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`exercises.${exerciseIndex}.sets.${setIndex}.weighted_kg`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Poids lesté (kg)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.5" placeholder="0" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const currentSets = form.getValues(`exercises.${exerciseIndex}.sets`);
+                            if (currentSets.length > 1) {
+                              const newSets = [...currentSets];
+                              newSets.splice(setIndex, 1);
+                              form.setValue(`exercises.${exerciseIndex}.sets`, newSets);
+                            } else {
+                              showError("Un exercice doit avoir au moins une série.");
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        form.setValue(`exercises.${exerciseIndex}.sets`, [
+                          ...form.getValues(`exercises.${exerciseIndex}.sets`),
+                          { reps: 0, weight: 0, weighted_kg: 0 },
+                        ])
+                      }
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" /> Ajouter une série
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
 
             <Button
               type="button"
@@ -417,6 +434,7 @@ const AddWorkoutForm: React.FC<AddWorkoutFormProps> = ({
                   id: crypto.randomUUID(),
                   exercise_id: "", // Initialize with empty string
                   name: "",
+                  type: "", // Initialize with empty string
                   sets: [{ reps: 0, weight: 0, weighted_kg: 0 }],
                 })
               }

@@ -1,5 +1,9 @@
 export interface ExerciseSet {
   reps: number;
+  /**
+   * For dumbbell exercises, this represents the weight per dumbbell.
+   * For other exercises, it's the total weight.
+   */
   weight: number;
   weighted_kg?: number | null; // New field for additional weighted weight
 }
@@ -8,11 +12,16 @@ export interface Exercise {
   id: string; // Unique ID for each exercise within a workout
   exercise_id: string; // Reference to the master exercise definition
   name: string; // Denormalized name for easier display
+  type: string; // 'machine', 'free_weight', 'bodyweight', 'cardio', etc.
   sets: ExerciseSet[];
 }
 
 export interface TemplateExerciseSet {
   targetReps: number;
+  /**
+   * For dumbbell exercises, this represents the target weight per dumbbell.
+   * For other exercises, it's the total target weight.
+   */
   targetWeight: number;
   targetWeighted_kg?: number | null; // New field for additional weighted weight in templates
 }
@@ -21,6 +30,7 @@ export interface TemplateExercise {
   id: string; // Unique ID for each exercise within a template
   exercise_id: string; // Reference to the master exercise definition
   name: string; // Denormalized name for easier display
+  type: string; // 'machine', 'free_weight', 'bodyweight', 'cardio', etc.
   targetSets: TemplateExerciseSet[];
 }
 
